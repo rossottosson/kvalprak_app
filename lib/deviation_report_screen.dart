@@ -1,7 +1,7 @@
+// lib/deviation_report_screen.dart
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-// Optional: Import services for PlatformException if needed later
-// import 'package:flutter/services.dart';
+import 'package:kvalprak_app/login_screen.dart'; // Import LoginScreen
 
 class DeviationReportScreen extends StatefulWidget {
   const DeviationReportScreen({super.key});
@@ -18,6 +18,9 @@ class _DeviationReportScreenState extends State<DeviationReportScreen> {
   final String _allowedHost = 'playground.kiv.kvalprak.se';
   final String _deviationBasePath = 'https://playground.kiv.kvalprak.se/deviation/';
   final String _successUrlPattern = 'https://playground.kiv.kvalprak.se/deviation/add/2/';
+  // --- ADDED: Define the login URL pattern ---
+  // Adjust this if the actual login URL is different (e.g., includes query params consistently)
+  final String _loginUrlPattern = 'https://playground.kiv.kvalprak.se/login';
 
 
   @override
@@ -50,20 +53,18 @@ class _DeviationReportScreenState extends State<DeviationReportScreen> {
               setState(() {
                 loadingPercentage = 100;
               });
+              // Optional: Hide website header (replace selector)
+              const String jsCodeToHideHeader = """
+                var elementToHide = document.querySelector('.website-header-class-name'); // <-- REPLACE THIS SELECTOR
+                if (elementToHide) { elementToHide.style.display = 'none'; }
+              """;
+               _controller.runJavaScript(jsCodeToHideHeader);
             }
           },
           onWebResourceError: (WebResourceError error) {
-            debugPrint('''
-Page resource error:
-  code: ${error.errorCode}
-  description: ${error.description}
-  errorType: ${error.errorType}
-  isForMainFrame: ${error.isForMainFrame}
-            ''');
+            debugPrint('''Page resource error: ${error.description}''');
             if(mounted) {
-               setState(() {
-                loadingPercentage = 100; // Hide progress bar on error
-              });
+               setState(() { loadingPercentage = 100; });
                if ((error.isForMainFrame ?? false) && context.mounted) {
                  ScaffoldMessenger.of(context).showSnackBar(
                    SnackBar(content: Text('Failed to load page: ${error.description}')),
@@ -90,33 +91,53 @@ Page resource error:
                   ),
                 );
                 if (Navigator.canPop(context)) {
-                  Navigator.of(context).pop();
+                  Navigator.of(context).pop(); // Go back to ActionSelectScreen
                 }
               }
               return NavigationDecision.prevent;
             }
 
-            // --- Check 2: Is it within the allowed host AND deviation section? ---
-            // CHANGE: Removed the '|| requestedUrl == 'https://$_allowedHost/' condition
-            // Now only allows navigation if it starts with the deviation base path.
+            // --- Check 2: Is it the LOGIN URL pattern (session timeout)? ---
+            if (requestedUrl.startsWith(_loginUrlPattern)) {
+               debugPrint('>>> Login URL detected (session timeout?): $requestedUrl');
+               if (mounted) {
+                  ScaffoldMessenger.of(context).removeCurrentSnackBar();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Sessionen har gått ut, logga in igen.'),
+                      backgroundColor: Colors.orange, // Use a warning color
+                      duration: Duration(seconds: 3),
+                    ),
+                  );
+                  // Navigate back to the LoginScreen, clearing the stack above it
+                  Navigator.of(context).pushAndRemoveUntil(
+                     MaterialPageRoute(builder: (context) => const LoginScreen()),
+                     (Route<dynamic> route) => false, // Remove all routes
+                  );
+               }
+               return NavigationDecision.prevent; // Prevent webview from actually going to login
+            }
+
+
+            // --- Check 3: Is it within the allowed host AND deviation section? ---
             if (requestedUri.host == _allowedHost && requestedUrl.startsWith(_deviationBasePath)) {
               debugPrint('Allowing navigation within deviation section: $requestedUrl');
               return NavigationDecision.navigate;
-            } else {
-              // --- Check 3: Otherwise, prevent navigation (including root, external, etc.) ---
-              debugPrint('Preventing navigation away from deviation section: $requestedUrl');
-              if (mounted) {
+            }
+
+            // --- Check 4: Otherwise, prevent navigation ---
+            // This handles clicks on other links within the deviation page (e.g., external links, root link)
+            debugPrint('Preventing navigation away from deviation section: $requestedUrl');
+            if (mounted) {
                  ScaffoldMessenger.of(context).removeCurrentSnackBar();
                  ScaffoldMessenger.of(context).showSnackBar(
                    const SnackBar(
-                     // Consider a slightly more general message now
                      content: Text('Navigering utanför aktuell sektion är begränsad.'),
                      duration: Duration(seconds: 2),
                     ),
                  );
-              }
-              return NavigationDecision.prevent; // Block
             }
+            return NavigationDecision.prevent; // Block
           }, // End of onNavigationRequest
         ), // End of NavigationDelegate
       ) // End of setNavigationDelegate
@@ -131,6 +152,7 @@ Page resource error:
         leading: IconButton(
            icon: const Icon(Icons.arrow_back),
            onPressed: () {
+             // Maybe add confirmation dialog if user might lose data?
              if (Navigator.canPop(context)) {
                 Navigator.pop(context);
              }

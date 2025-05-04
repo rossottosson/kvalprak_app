@@ -1,48 +1,67 @@
+// lib/main.dart
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart'; // Keep provider import
-// Removed the incorrect import for auth_check_screen.dart
-// Import LoginScreen if it's not implicitly found (usually not needed if in same project)
-import 'package:kvalprak_app/login_screen.dart';
-import 'package:kvalprak_app/providers/checklist_provider.dart'; // Keep your provider import
+import 'package:provider/provider.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
-void main() {
-  // Ensure Flutter bindings are initialized
+// --- ADD IMPORTS FOR MODELS AND GENERATED ADAPTERS ---
+import 'package:kvalprak_app/models/checklist.dart';
+import 'package:kvalprak_app/models/checklist_item.dart';
+import 'package:kvalprak_app/models/saved_checklist_log.dart';
+
+// --- END IMPORTS ---
+
+import 'package:kvalprak_app/login_screen.dart';
+import 'package:kvalprak_app/providers/checklist_provider.dart';
+
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Wrap the app with the Provider
+  await Hive.initFlutter();
+
+  // --- REGISTER ADAPTERS (Uncomment/Add these lines) ---
+  // Ensure the typeIds match those defined in your models (0, 1, 2)
+  Hive.registerAdapter(ChecklistAdapter());
+  Hive.registerAdapter(ChecklistItemAdapter());
+  Hive.registerAdapter(SavedChecklistLogAdapter());
+  // --- END REGISTER ADAPTERS ---
+
+  // --- OPEN HIVE BOXES (Uncomment/Add these lines) ---
+  // Use unique names for your boxes
+  await Hive.openBox<Checklist>('checklistsBox');
+  await Hive.openBox<SavedChecklistLog>('savedLogsBox');
+  // --- END OPEN BOXES ---
+
+
   runApp(
     ChangeNotifierProvider(
-      create: (context) => ChecklistProvider(), // Create instance of your provider
-      child: const MyApp(), // Your original root widget
+      // --- UPDATE PROVIDER CREATION ---
+      // Create the provider and immediately call loadData
+      create: (context) => ChecklistProvider()..loadData(),
+      child: const MyApp(),
     ),
   );
 }
+
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Define new colors
-    const Color primaryViolet = Color(0xFF6A1B9A); // CHANGE: New primary violet color
-    const Color secondaryTurquoise = Color(0xFF00AFAB); // CHANGE: New secondary turquoise color
+    const Color primaryViolet = Color(0xFF6A1B9A);
+    const Color secondaryTurquoise = Color(0xFF00AFAB);
 
     return MaterialApp(
       title: 'Kvalprak App',
       theme: ThemeData(
-        // CHANGE: Updated color scheme using new seed/primary/secondary colors
         colorScheme: ColorScheme.fromSeed(
-          seedColor: primaryViolet,      // Use violet as seed
-          primary: primaryViolet,         // Explicitly set primary to violet
-          secondary: secondaryTurquoise, // Explicitly set secondary to turquoise
-          // You might need to adjust onPrimary, onSecondary etc. if contrast is poor,
-          // but fromSeed usually handles this well. Let's assume default is okay for now.
-          brightness: Brightness.light, // Or Brightness.dark based on your preference
+          seedColor: primaryViolet,
+          primary: primaryViolet,
+          secondary: secondaryTurquoise,
+          brightness: Brightness.light,
         ),
         useMaterial3: true,
         appBarTheme: const AppBarTheme(
-          // CHANGE: Updated AppBar background color
           backgroundColor: primaryViolet,
-          // Keep foreground white, usually good contrast with violet
           foregroundColor: Colors.white,
           elevation: 2,
           titleTextStyle: TextStyle(
@@ -52,12 +71,10 @@ class MyApp extends StatelessWidget {
           ),
           iconTheme: IconThemeData(color: Colors.white),
         ),
-         // Ensure other theme components adapt or override if needed
-         elevatedButtonTheme: ElevatedButtonThemeData( /* ... potentially adjust styles if needed ... */ ),
-         textButtonTheme: TextButtonThemeData( /* ... potentially adjust styles if needed ... */ ),
-         inputDecorationTheme: InputDecorationTheme( /* ... potentially adjust styles if needed ... */ ),
+         elevatedButtonTheme: ElevatedButtonThemeData( /* ... */ ),
+         textButtonTheme: TextButtonThemeData( /* ... */ ),
+         inputDecorationTheme: InputDecorationTheme( /* ... */ ),
       ),
-      // Ensure 'home' points directly to LoginScreen
       home: const LoginScreen(),
     );
   }
