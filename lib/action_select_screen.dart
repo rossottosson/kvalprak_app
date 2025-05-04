@@ -1,6 +1,8 @@
+// lib/action_select_screen.dart
 import 'package:flutter/material.dart';
 import 'package:kvalprak_app/deviation_report_screen.dart';
-import 'package:kvalprak_app/screens/checklists_overview_screen.dart'; // Import overview screen
+import 'package:kvalprak_app/screens/checklists_overview_screen.dart';
+import 'package:kvalprak_app/screens/saved_checklists_screen.dart'; // Import the new screen
 
 class ActionSelectScreen extends StatelessWidget {
   const ActionSelectScreen({super.key});
@@ -14,31 +16,26 @@ class ActionSelectScreen extends StatelessWidget {
     // Define specific button colors
     const Color oxbloodRed = Color(0xFF8B0000);   // Oxblood Red
     const Color turquoise = Color(0xFF00AFAB);   // Turquoise
+    final Color primaryColor = colorScheme.primary; // Use theme's primary (Violet)
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Vårdna'),
+        title: const Text('Kvalprak appen'),
         automaticallyImplyLeading: false, // No back button here
       ),
-      body: SafeArea( // Ensure content respects device notches/insets
-        // CHANGE: Removed the Center widget to allow top alignment
+      body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24.0), // Keep padding around the column
+          padding: const EdgeInsets.all(24.0),
           child: Column(
-            // CHANGE: Align content to the start (top) instead of center
             mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.stretch, // Make buttons stretch horizontally
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              const SizedBox(height: 20), // Adjust this height (e.g., 20) to move the logo down
-
-              // --- Logo Image ---
+              const SizedBox(height: 20),
               Image.asset(
-                'assets/images/Vårdna_symbol_gröngrå.png', // Path declared in pubspec.yaml
-                // CHANGE: Increased height to make the logo bigger
-                height: 200,
+                'assets/images/Vårdna_symbol_gröngrå.png',
+                height: 180,
               ),
-              // CHANGE: Slightly increased spacing below logo for balance
-              const SizedBox(height: 250),
+              const SizedBox(height: 200),
 
               // --- Deviation Report Button ---
               ElevatedButton.icon(
@@ -85,8 +82,33 @@ class ActionSelectScreen extends StatelessWidget {
                     );
                 },
               ),
-              // Optional: Add a Spacer() here if you want to push buttons further down
-              // const Spacer(),
+
+              // --- ADDED: Saved History Button ---
+              const SizedBox(height: 30), // Spacing between buttons
+
+              ElevatedButton.icon(
+                icon: const Icon(Icons.history_rounded, size: 28), // History icon
+                label: const Text('Sparad Historik'),
+                  style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  textStyle: textTheme.titleLarge,
+                    shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  // Use primary color for this button
+                  backgroundColor: primaryColor,
+                  foregroundColor: colorScheme.onPrimary, // Text color on primary
+                ),
+                onPressed: () {
+                    debugPrint('Navigating to Saved Checklists Screen');
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SavedChecklistsScreen()),
+                    );
+                },
+              ),
+              // --- END ADDED ---
+
             ],
           ),
         ),
