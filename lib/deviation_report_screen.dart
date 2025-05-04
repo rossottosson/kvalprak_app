@@ -1,4 +1,3 @@
-// lib/deviation_report_screen.dart
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 // Optional: Import services for PlatformException if needed later
@@ -15,10 +14,10 @@ class _DeviationReportScreenState extends State<DeviationReportScreen> {
   late final WebViewController _controller;
   var loadingPercentage = 0;
 
-  // --- Define the specific URL for deviation reporting ---
-  final String _deviationUrl = 'https://playground.kiv.kvalprak.se/deviation/';
-  // Define the base host for comparison
+  final String _initialDeviationUrl = 'https://playground.kiv.kvalprak.se/deviation/add/1';
   final String _allowedHost = 'playground.kiv.kvalprak.se';
+  final String _deviationBasePath = 'https://playground.kiv.kvalprak.se/deviation/';
+  final String _successUrlPattern = 'https://playground.kiv.kvalprak.se/deviation/add/2/';
 
 
   @override
@@ -39,7 +38,6 @@ class _DeviationReportScreenState extends State<DeviationReportScreen> {
             }
           },
           onProgress: (int progress) {
-             // debugPrint('WebView is loading (progress : $progress%)');
              if(mounted) {
                setState(() {
                  loadingPercentage = progress;
@@ -53,7 +51,6 @@ class _DeviationReportScreenState extends State<DeviationReportScreen> {
                 loadingPercentage = 100;
               });
             }
-            // Optional: Could inject javascript here if needed to modify the page
           },
           onWebResourceError: (WebResourceError error) {
             debugPrint('''
@@ -74,23 +71,48 @@ Page resource error:
                }
             }
           },
+          // --- UPDATED: onNavigationRequest Logic ---
           onNavigationRequest: (NavigationRequest request) {
-            final requestedUri = Uri.parse(request.url);
-            debugPrint('Deviation Navigation request to: ${request.url}');
+            final requestedUrl = request.url;
+            final requestedUri = Uri.parse(requestedUrl);
+            debugPrint('Deviation Navigation request to: $requestedUrl');
 
-            // *** Navigation Locking Logic for Deviation Section ***
-            // Allow navigation ONLY if it's within the allowed host AND
-            // starts with the base deviation path OR is the root path (might be needed for logout links etc.)
-            if (requestedUri.host == _allowedHost &&
-                (request.url.startsWith(_deviationUrl) || request.url == 'https://$_allowedHost/')) { // Allow going back to root potentially
-              debugPrint('Allowing navigation within deviation section or to root: ${request.url}');
+            // --- Check 1: Is it the success URL pattern? ---
+            if (requestedUrl.startsWith(_successUrlPattern)) {
+              debugPrint('>>> Success URL detected: $requestedUrl');
+              if (mounted) {
+                ScaffoldMessenger.of(context).removeCurrentSnackBar();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Ditt ärende har skickats!'),
+                    backgroundColor: Colors.green,
+                    duration: Duration(seconds: 3),
+                  ),
+                );
+                if (Navigator.canPop(context)) {
+                  Navigator.of(context).pop();
+                }
+              }
+              return NavigationDecision.prevent;
+            }
+
+            // --- Check 2: Is it within the allowed host AND deviation section? ---
+            // CHANGE: Removed the '|| requestedUrl == 'https://$_allowedHost/' condition
+            // Now only allows navigation if it starts with the deviation base path.
+            if (requestedUri.host == _allowedHost && requestedUrl.startsWith(_deviationBasePath)) {
+              debugPrint('Allowing navigation within deviation section: $requestedUrl');
               return NavigationDecision.navigate;
             } else {
-              // Prevent navigation outside the allowed deviation paths
-              debugPrint('Preventing navigation away from deviation section: ${request.url}');
-              if (context.mounted) {
+              // --- Check 3: Otherwise, prevent navigation (including root, external, etc.) ---
+              debugPrint('Preventing navigation away from deviation section: $requestedUrl');
+              if (mounted) {
+                 ScaffoldMessenger.of(context).removeCurrentSnackBar();
                  ScaffoldMessenger.of(context).showSnackBar(
-                   const SnackBar(content: Text('Navigering utanför avvikelsesektionen är begränsad.')),
+                   const SnackBar(
+                     // Consider a slightly more general message now
+                     content: Text('Navigering utanför aktuell sektion är begränsad.'),
+                     duration: Duration(seconds: 2),
+                    ),
                  );
               }
               return NavigationDecision.prevent; // Block
@@ -98,7 +120,7 @@ Page resource error:
           }, // End of onNavigationRequest
         ), // End of NavigationDelegate
       ) // End of setNavigationDelegate
-      ..loadRequest(Uri.parse(_deviationUrl)); // Load the deviation URL directly
+      ..loadRequest(Uri.parse(_initialDeviationUrl)); // Load the initial deviation URL
   } // End of initState method
 
   @override
@@ -106,20 +128,18 @@ Page resource error:
     return Scaffold(
       appBar: AppBar(
         title: const Text('Rapportera Avvikelse'),
-        // The default back button in AppBar will call Navigator.pop(context)
-        // which takes the user back to ActionSelectScreen.
         leading: IconButton(
            icon: const Icon(Icons.arrow_back),
            onPressed: () {
-             // Maybe add a confirmation dialog here if needed?
              if (Navigator.canPop(context)) {
                 Navigator.pop(context);
              }
            }
         ),
-         actions: [ // Add reload for convenience
+         actions: [
           IconButton(
             icon: const Icon(Icons.replay),
+            tooltip: 'Ladda om sidan',
             onPressed: () {
               _controller.reload();
             },
