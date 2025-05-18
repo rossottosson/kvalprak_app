@@ -20,7 +20,7 @@ class ActionSelectScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Kvalprak appen'),
+        title: const Text('Vårdna'),
         automaticallyImplyLeading: false, // No back button here
       ),
       body: SafeArea(

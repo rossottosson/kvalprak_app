@@ -141,7 +141,7 @@ class _LoginScreenState extends State<LoginScreen> {
     debugPrint("LoginScreen build method running (Immediate Navigation Approach)");
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Login - Kvalprak'),
+        title: const Text('Login - Vårdna'),
       ),
       body: Stack(
         children: [
