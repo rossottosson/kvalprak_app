@@ -1,9 +1,10 @@
 // lib/login_screen.dart
+// UPDATED WITH "CHANGE CLINIC" BUTTON
 import 'package:flutter/material.dart';
-// import 'package:flutter/services.dart'; // Can likely remove
-import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter/webview_flutter.dart'; // Needed for WebViewCookieManager
 import 'package:kvalprak_app/action_select_screen.dart';
-// No transition screen import needed
+import 'package:kvalprak_app/services/url_service.dart';
+import 'package:kvalprak_app/screens/clinic_selection_screen.dart'; // To navigate back
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -13,158 +14,260 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  late final WebViewController _controller;
-  var loadingPercentage = 0;
+  late WebViewController _controller;
+  int _pageLoadingPercentage = 0;
   bool _navigationTriggered = false;
-  // Removed _isTransitioning and _isInitialLoad state variables
 
-  // URLs and Host configuration
-  final String _initialUrl = 'https://playground.kiv.kvalprak.se/login?redirect=';
-  final String _postLoginSuccessUrl = 'https://playground.kiv.kvalprak.se/';
-  final String _allowedHost = 'playground.kiv.kvalprak.se';
+  bool _isLoadingUrls = true;
+  String _dynamicInitialUrl = '';
+  String _dynamicPostLoginSuccessUrl = '';
+  String _dynamicAllowedHost = '';
 
   @override
   void initState() {
     super.initState();
-    debugPrint("LoginScreen initState (Reverted to Immediate Navigation)");
+    debugPrint("LoginScreen initState: Loading dynamic URLs...");
     _navigationTriggered = false;
+    _loadUrlsAndInitializeController();
+  }
 
-    // Initialize WebViewController
+  Future<void> _loadUrlsAndInitializeController() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoadingUrls = true;
+    });
+
+    _dynamicInitialUrl = await UrlService.getLoginInitialUrl();
+    _dynamicPostLoginSuccessUrl = await UrlService.getLoginPostSuccessUrl();
+    _dynamicAllowedHost = await UrlService.getHost();
+
+    debugPrint("LoginScreen: Dynamic URLs loaded:");
+    debugPrint("  _dynamicInitialUrl: $_dynamicInitialUrl");
+    debugPrint("  _dynamicPostLoginSuccessUrl: $_dynamicPostLoginSuccessUrl");
+    debugPrint("  _dynamicAllowedHost: $_dynamicAllowedHost");
+
+    if (!mounted) return;
+
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(const Color(0x00000000))
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageStarted: (String url) {
-            debugPrint('LoginScreen: Page started loading: $url');
-            if (mounted) {
-              // Reset navigation trigger if a new page starts BEFORE success was reached
-              // (e.g., user navigates back/forth on login pages)
-              if (!_navigationTriggered) {
-                 // Reset linear progress only
-                 setState(() { loadingPercentage = 0; });
-              }
+            debugPrint('LoginScreen WebView: Page started loading: $url');
+            if (mounted && !_navigationTriggered) {
+              setState(() { _pageLoadingPercentage = 0; });
             }
           },
           onProgress: (int progress) {
-            if (mounted && !_navigationTriggered) { // Stop updating progress after navigating
-              setState(() { loadingPercentage = progress; });
+            if (mounted && !_navigationTriggered) {
+              setState(() { _pageLoadingPercentage = progress; });
             }
           },
-          // --- onPageFinished with IMMEDIATE Navigation ---
           onPageFinished: (String url) {
-            debugPrint('LoginScreen: ===== onPageFinished =====');
-            debugPrint('LoginScreen: Received URL: "$url"');
-            debugPrint('LoginScreen: Comparing with target success URL: "$_postLoginSuccessUrl"');
-            debugPrint('LoginScreen: _navigationTriggered state: $_navigationTriggered');
-            debugPrint('LoginScreen: Mounted state: $mounted');
+            debugPrint('LoginScreen WebView: ===== onPageFinished =====');
+            debugPrint('LoginScreen WebView: Received URL: "$url"');
+            debugPrint('LoginScreen WebView: Comparing with target success URL: "$_dynamicPostLoginSuccessUrl"');
 
-            // Stop showing linear progress once any page finishes
-            if (mounted && loadingPercentage != 100) {
-              setState(() { loadingPercentage = 100; });
+            if (mounted && _pageLoadingPercentage != 100) {
+              setState(() { _pageLoadingPercentage = 100; });
             }
 
-            // --- Navigate if on Success URL ---
-            if (url == _postLoginSuccessUrl) {
-              debugPrint('LoginScreen: URL matches _postLoginSuccessUrl.');
+            if (url == _dynamicPostLoginSuccessUrl) {
+              debugPrint('LoginScreen WebView: URL matches _dynamicPostLoginSuccessUrl.');
               if (!_navigationTriggered && mounted) {
-                  _navigationTriggered = true; // Prevent duplicate triggers
-                  debugPrint('>>> LoginScreen: Triggering native navigation IMMEDIATELY...');
-
-                  // *** Direct navigation call ***
+                  _navigationTriggered = true;
+                  debugPrint('>>> LoginScreen WebView: Triggering native navigation IMMEDIATELY...');
                   Navigator.of(context).pushReplacement(
                      MaterialPageRoute(builder: (context) => const ActionSelectScreen()),
                   );
-                  // ****************************
-
-                  debugPrint('>>> LoginScreen: Navigator.pushReplacement called.');
-              } else {
-                  debugPrint('LoginScreen: Native navigation skipped (already triggered or unmounted)...');
+                  debugPrint('>>> LoginScreen WebView: Navigator.pushReplacement called.');
               }
             } else {
-                debugPrint('LoginScreen: URL does NOT match target success URL.');
+                debugPrint('LoginScreen WebView: URL does NOT match target success URL.');
             }
-             debugPrint('LoginScreen: ===== /onPageFinished =====');
-          }, // End of onPageFinished
-
+             debugPrint('LoginScreen WebView: ===== /onPageFinished =====');
+          },
           onWebResourceError: (WebResourceError error) {
-             debugPrint('''LoginScreen: Page resource error: ${error.description}''');
+             debugPrint('''LoginScreen WebView: Page resource error: ${error.description} (URL: ${error.url})''');
             if (mounted) {
-              setState(() { loadingPercentage = 100; });
+              setState(() { _pageLoadingPercentage = 100; });
               if ((error.isForMainFrame ?? false) && context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('Failed to load page: ${error.description}')),
                 );
               }
             }
-             // Reset navigation trigger on error? Maybe not needed if staying on LoginScreen
-             // _navigationTriggered = false;
-          }, // End of onWebResourceError
-
-          // --- Navigation Request Logic (Simplified back) ---
+          },
           onNavigationRequest: (NavigationRequest request) {
-            // Block navigation if native transition has theoretically started
-            // Might help slightly but likely won't prevent initial flash
              if (_navigationTriggered) {
-               debugPrint('LoginScreen: Native navigation triggered, preventing further web request to: "${request.url}"');
+               debugPrint('LoginScreen WebView: Native navigation triggered, preventing further web request to: "${request.url}"');
                return NavigationDecision.prevent;
              }
 
             final requestedUri = Uri.parse(request.url);
-            debugPrint('LoginScreen: onNavigationRequest check for: "${request.url}"');
+            debugPrint('LoginScreen WebView: onNavigationRequest check for: "${request.url}" (Host: ${requestedUri.host})');
+            debugPrint('LoginScreen WebView: Comparing with allowed host: "$_dynamicAllowedHost"');
 
-            if (requestedUri.host == _allowedHost) {
-              debugPrint('LoginScreen: Allowing navigation within domain: "${request.url}"');
+            if (requestedUri.host == _dynamicAllowedHost) {
+              debugPrint('LoginScreen WebView: Allowing navigation within domain: "${request.url}"');
               return NavigationDecision.navigate;
             } else {
-              debugPrint('LoginScreen: Preventing external navigation to: "${request.url}"');
-              if (context.mounted) {
-                 ScaffoldMessenger.of(context).removeCurrentSnackBar();
-                 ScaffoldMessenger.of(context).showSnackBar(
-                   const SnackBar(
-                     content: Text('Navigation to external sites is blocked.'),
-                     duration: Duration(seconds: 2),
-                    ),
-                 );
-              }
-              return NavigationDecision.prevent; // Block
+              debugPrint('LoginScreen WebView: Preventing external or disallowed navigation to: "${request.url}"');
+              // SnackBar borttagen härifrån enligt tidigare önskemål
+              return NavigationDecision.prevent;
             }
-          }, // End of onNavigationRequest
-        ), // End of NavigationDelegate
-      ) // End of setNavigationDelegate
-      ..loadRequest(Uri.parse(_initialUrl)); // Load the initial URL
-  } // End of initState method
+          },
+        ),
+      )
+      ..loadRequest(Uri.parse(_dynamicInitialUrl));
 
-  // --- Build Method (Simplified - No overlay logic) ---
+    if (mounted) {
+      setState(() {
+        _isLoadingUrls = false;
+      });
+    }
+  }
+
+  // --- METOD FÖR ATT BYTA KLINIK / LOGGA UT ---
+  Future<void> _confirmAndChangeClinic() async {
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Byt klinik'),
+          content: const Text(
+              'Är du säker på att du vill byta klinik? Du kommer att loggas ut och tas tillbaka till klinikvalet.'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Avbryt'),
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+            ),
+            TextButton(
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('Byt klinik'),
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm == true && mounted) {
+      // Rensa WebView cookies
+      final WebViewCookieManager cookieManager = WebViewCookieManager();
+      final bool hadCookies = await cookieManager.clearCookies();
+      debugPrint("LoginScreen: WebView cookies cleared (had cookies: $hadCookies)");
+
+      // Rensa vald klinik i SharedPreferences
+      await UrlService.clearSelectedClinic();
+
+      // Navigera tillbaka till klinikvalsskärmen och rensa historiken
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const ClinicSelectionScreen()),
+        (Route<dynamic> route) => false,
+      );
+    }
+  }
+  // --- SLUT PÅ METOD ---
+
+
   @override
   Widget build(BuildContext context) {
-    debugPrint("LoginScreen build method running (Immediate Navigation Approach)");
+    if (_isLoadingUrls) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Login - Vårdna'),
+          // Lägg till "Byt klinik"-knapp även här, om användaren vill byta innan URL:er laddats
+          actions: [
+            Tooltip(
+              message: "Byt klinik",
+              child: IconButton(
+                icon: const Icon(Icons.home_work_outlined), // Eller Icons.logout_rounded
+                onPressed: _confirmAndChangeClinic,
+              ),
+            ),
+          ],
+        ),
+        body: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 20),
+              Text("Laddar klinikinformation..."),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Login - Vårdna'),
+        title: FutureBuilder<String?>(
+           future: UrlService.getSelectedClinicName(),
+           builder: (context, snapshot) {
+             String titleText = "Login";
+             if (snapshot.connectionState == ConnectionState.done) {
+               if (snapshot.hasData && snapshot.data != null && snapshot.data!.isNotEmpty) {
+                 titleText = "${snapshot.data} - Login";
+               } else if (_dynamicAllowedHost.isNotEmpty) {
+                  final hostParts = _dynamicAllowedHost.split('.');
+                  if (hostParts.isNotEmpty && hostParts.first.toLowerCase() != "www") {
+                    titleText = "${hostParts.first.capitalize()} - Login";
+                  } else if (hostParts.length > 1 && hostParts[1].isNotEmpty) {
+                    titleText = "${hostParts[1].capitalize()} - Login"; // Om det är t.ex. www.kliniknamn
+                  }
+               } else {
+                 titleText = "Login - Vårdna";
+               }
+             } else if (snapshot.connectionState == ConnectionState.waiting) {
+                titleText = "Laddar klinik...";
+             }
+             return Text(titleText);
+           }
+        ),
+        // --- LÄGG TILL KNAPPEN HÄR ---
+        actions: [
+          Tooltip(
+            message: "Byt klinik / Välj annan klinik",
+            child: IconButton(
+              icon: const Icon(Icons.home_work_outlined), // Tydligare ikon för "byt klinik"
+                                                        // Alternativt Icons.logout om det känns mer rätt
+              onPressed: _confirmAndChangeClinic,
+            ),
+          ),
+        ],
+        // --- SLUT PÅ TILLÄGG ---
       ),
       body: Stack(
         children: [
-          // Just the WebView
           WebViewWidget(
             controller: _controller,
           ),
-          // And the linear progress indicator (show until page finishes)
-          if (loadingPercentage < 100)
+          if (_pageLoadingPercentage < 100)
             LinearProgressIndicator(
-              value: loadingPercentage / 100.0,
-              backgroundColor: Colors.white.withOpacity(0.5),
+              value: _pageLoadingPercentage / 100.0,
+              backgroundColor: Colors.grey[200],
               valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
             ),
         ],
       ),
     );
-  } // End build method
+  }
 
-  // --- Dispose Method ---
   @override
   void dispose() {
     debugPrint("LoginScreen dispose method called.");
     super.dispose();
   }
-} // End _LoginScreenState class
+}
+
+extension StringExtension on String {
+    String capitalize() {
+      if (isEmpty) {
+        return this;
+      }
+      return "${this[0].toUpperCase()}${substring(1).toLowerCase()}";
+    }
+}

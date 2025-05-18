@@ -1,0 +1,359 @@
+
+[
+    {
+      "name": "Playground (Testmiljö)",
+      "subdomain": "playground"
+    },
+    {
+      "name": "Kiro Hälsa",
+      "subdomain": "kiro"
+    },
+    {
+      "name": "Ornaegen Specialistvård",
+      "subdomain": "ornaegen"
+    },
+    {
+      "name": "Adolf Fredriks Fysiocenter AB",
+      "subdomain": "aff"
+    },
+    {
+      "name": "ABA Ögonklinik",
+      "subdomain": "abaogon"
+    },
+    {
+      "name": "Admedic - Ledplastikcentrum",
+      "subdomain": "admedicbromma"
+    },
+    {
+      "name": "Advanced elective orthopaedic services",
+      "subdomain": "aeos"
+    },
+    {
+      "name": "Advanced Skin Care - Göteborg",
+      "subdomain": "asc"
+    },
+    {
+      "name": "Adxto Care AV",
+      "subdomain": "adxto"
+    },
+    {
+      "name": "Agilokliniken AB",
+      "subdomain": "agilo"
+    },
+    {
+      "name": "Akardo AB",
+      "subdomain": "akardo"
+    },
+    {
+      "name": "Alfa Diagnostik AB",
+      "subdomain": "alfa8"
+    },
+    {
+      "name": "Artrocenter",
+      "subdomain": "artrocenter"
+    },
+    {
+      "name": "Askimkliniken",
+      "subdomain": "askim"
+    },
+    {
+      "name": "Beautaholic By Ahrnberg AB",
+      "subdomain": "beautaholic"
+    },
+    {
+      "name": "Botvid VC",
+      "subdomain": "botvidvc"
+    },
+    {
+      "name": "Bragee Kliniker AB",
+      "subdomain": "brageeklinikerna"
+    },
+    {
+      "name": "ChiropraktikAkuten",
+      "subdomain": "chiroakut"
+    },
+    {
+      "name": "Demo2",
+      "subdomain": "demo2"
+    },
+    {
+      "name": "Din Doktor i Märsta AB",
+      "subdomain": "dindoktor"
+    },
+    {
+      "name": "Eira Health AB",
+      "subdomain": "eira"
+    },
+    {
+      "name": "Imuvira AB",
+      "subdomain": "imuvira"
+    },
+    {
+      "name": "Kista BUMM",
+      "subdomain": "kistabumm"
+    },
+    {
+      "name": "Derma Cure Sverige AB (Skin hudkliniken)",
+      "subdomain": "skin"
+    },
+    {
+      "name": "Frölunda Ortopeden AB",
+      "subdomain": "frolunda"
+    },
+    {
+      "name": "Globen BUMM Huddinge BUMM",
+      "subdomain": "hbum"
+    },
+    {
+      "name": "Hudcentrum Hagastaden AB",
+      "subdomain": "hudcentrum"
+    },
+    {
+      "name": "Kvartersakuten Serafen",
+      "subdomain": "serafen"
+    },
+    {
+      "name": "Malmö Plastikkirurgi AB",
+      "subdomain": "malmoplastik"
+    },
+    {
+      "name": "Peter Skoghagen AB",
+      "subdomain": "kabohalsan"
+    },
+    {
+      "name": "Stuvsta Vårdcentral",
+      "subdomain": "stuvsta"
+    },
+    {
+      "name": "VårbyCare",
+      "subdomain": "varbycare"
+    },
+    {
+      "name": "Weda Barnmorskemottagning",
+      "subdomain": "wedabarn"
+    },
+    {
+      "name": "Öronkliniken Stockholm",
+      "subdomain": "onhs"
+    },
+    {
+      "name": "Endogyn AB",
+      "subdomain": "endogyn"
+    },
+    {
+      "name": "Engelbrekt Kiropraktikercenter",
+      "subdomain": "englbk"
+    },
+    {
+      "name": "Estetiker små",
+      "subdomain": "ornaestet"
+    },
+    {
+      "name": "Estetiska Institutet",
+      "subdomain": "ei"
+    },
+    {
+      "name": "Fotcenter Stockholm/Göteborg",
+      "subdomain": "atleva"
+    },
+    {
+      "name": "Förebygga",
+      "subdomain": "forebygga"
+    },
+    {
+      "name": "GHP Kirurgkliniken Stockholm AB (ink Gastro)",
+      "subdomain": "ghpsh"
+    },
+    {
+      "name": "GHP Ortho Center Stockholm AB",
+      "subdomain": "ocs"
+    },
+    {
+      "name": "GHP Ortho Center Storängsbotten",
+      "subdomain": "storang"
+    },
+    {
+      "name": "GHP Spine Center Göteborg AB",
+      "subdomain": "spine"
+    },
+    {
+      "name": "Globen barn & ungdomsmedicinsk mottagning",
+      "subdomain": "gbumm"
+    },
+    {
+      "name": "Guldhedskliniken AB",
+      "subdomain": "ghk8"
+    },
+    {
+      "name": "HandCenter Göteborg AB",
+      "subdomain": "atleva"
+    },
+    {
+      "name": "Handcenter Stockholm AB",
+      "subdomain": "atleva"
+    },
+    {
+      "name": "Handcenter Öresund",
+      "subdomain": "atleva"
+    },
+    {
+      "name": "HVC Ljungby / Hälsoforum Växjö",
+      "subdomain": "hvc"
+    },
+    {
+      "name": "Hotorgets Vårdcentral AB",
+      "subdomain": "hotorget"
+    },
+    {
+      "name": "Idun Barnklinik",
+      "subdomain": "idun"
+    },
+    {
+      "name": "Islinge Gårds Läkarmottagning",
+      "subdomain": "islinge"
+    },
+    {
+      "name": "Karlstad Kiropraktorklinik",
+      "subdomain": "kkiro"
+    },
+    {
+      "name": "Kiropraktiker LKR paraply",
+      "subdomain": "kiro"
+    },
+    {
+      "name": "Klinik4",
+      "subdomain": "klinik4"
+    },
+    {
+      "name": "KRY Hudläkartjänst Stockholm AB",
+      "subdomain": "hlt"
+    },
+    {
+      "name": "Kungälv kiropraktik center",
+      "subdomain": "sockander"
+    },
+    {
+      "name": "Kvalprak (Huvudsida)",
+      "subdomain": "kvalprak"
+    },
+    {
+      "name": "Linköpings Health Care",
+      "subdomain": "lhc8"
+    },
+    {
+      "name": "Luleå Kiropraktik",
+      "subdomain": "lulekiro"
+    },
+    {
+      "name": "Lycenna",
+      "subdomain": "lycenna"
+    },
+    {
+      "name": "Läkarmottagningen i Bjärnum AB",
+      "subdomain": "bjarnum"
+    },
+    {
+      "name": "Martina Barnsjukhus",
+      "subdomain": "martinabsjh"
+    },
+    {
+      "name": "Medicheck",
+      "subdomain": "medicheck"
+    },
+    {
+      "name": "Naprapaterna",
+      "subdomain": "naprapat"
+    },
+    {
+      "name": "Nordiska Kliniken",
+      "subdomain": "nordiska"
+    },
+    {
+      "name": "Novius Ögonklinik (Meditro)",
+      "subdomain": "novius"
+    },
+    {
+      "name": "Nya Sveamottagningen",
+      "subdomain": "svea"
+    },
+    {
+      "name": "Orna Egen, småkunder",
+      "subdomain": "ornaegen"
+    },
+    {
+      "name": "Scandinavian Gastro Clinic",
+      "subdomain": "sgc"
+    },
+    {
+      "name": "Sergel City AB",
+      "subdomain": "sergel"
+    },
+    {
+      "name": "Skaraborgshälsan",
+      "subdomain": "skaraborgshalsan"
+    },
+    {
+      "name": "SLG Kalmar",
+      "subdomain": "slgkalmar"
+    },
+    {
+      "name": "Smärthjälpen Sverige AB",
+      "subdomain": "atleva"
+    },
+    {
+      "name": "Sollentuna Vårdcentral",
+      "subdomain": "sollvard"
+    },
+    {
+      "name": "Solna Centrum Öron, När & Hals klinik",
+      "subdomain": "solnaonh"
+    },
+    {
+      "name": "Stadions Läkarmottagning / Qvarner Skoglund AB",
+      "subdomain": "stadion"
+    },
+    {
+      "name": "Stiftelsen Mälargården Rehab Center",
+      "subdomain": "malargarden"
+    },
+    {
+      "name": "Stockholms Led- & Smärtspecialist - SLS",
+      "subdomain": "sls"
+    },
+    {
+      "name": "Sturebadet Läkarmottagning AB",
+      "subdomain": "shc"
+    },
+    {
+      "name": "Sundbybergs vårdcentral",
+      "subdomain": "sundbyberg"
+    },
+    {
+      "name": "ÚNYICA Stockholm",
+      "subdomain": "unyica"
+    },
+    {
+      "name": "Urology for life",
+      "subdomain": "urology"
+    },
+    {
+      "name": "Uropraxis AB",
+      "subdomain": "urologspecialisterna"
+    },
+    {
+      "name": "Vimera / Ortopedi Skåne AB",
+      "subdomain": "ortoisk"
+    },
+    {
+      "name": "Östermalm Health Clinic",
+      "subdomain": "ohc"
+    },
+    {
+      "name": "Östermalms Specialistmottagning",
+      "subdomain": "oslm8"
+    },
+    {
+      "name": "Östra Ögon",
+      "subdomain": "ostraogon"
+    }
+  ]

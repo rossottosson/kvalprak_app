@@ -1,169 +1,227 @@
 // lib/providers/checklist_provider.dart
 import 'package:flutter/foundation.dart';
-import 'package:hive/hive.dart'; // Import Hive
+import 'package:hive/hive.dart';
 import 'package:kvalprak_app/models/checklist.dart';
 import 'package:kvalprak_app/models/checklist_item.dart';
 import 'package:kvalprak_app/models/saved_checklist_log.dart';
 
 class ChecklistProvider with ChangeNotifier {
-
-  // --- HIVE BOX NAMES (Match names used in main.dart) ---
   static const String _checklistsBoxName = 'checklistsBox';
   static const String _savedLogsBoxName = 'savedLogsBox';
 
-  // --- Replace in-memory lists with references to Hive boxes ---
-  // These will be initialized in loadData
   late Box<Checklist> _checklistsBox;
   late Box<SavedChecklistLog> _savedLogsBox;
 
-  // --- Keep local lists for easy access, but they are derived from Hive ---
   List<Checklist> _checklists = [];
   List<SavedChecklistLog> _savedLogs = [];
 
-  // Public getters now return the local lists
   List<Checklist> get checklists => List.unmodifiable(_checklists);
   List<SavedChecklistLog> get savedLogs => List.unmodifiable(_savedLogs);
 
-  // --- ADDED: Method to load data from Hive ---
+  // --- Define unique IDs for each default checklist section ---
+  static const String _sIDLokaler = 'skyddsrond-lokaler-v1';
+  static const String _sIDBrandskydd = 'skyddsrond-brandskydd-v1';
+  static const String _sIDUtrustning = 'skyddsrond-utrustning-v1';
+  static const String _sIDErgonomi = 'skyddsrond-ergonomi-v1';
+  static const String _sIDKemikalier = 'skyddsrond-kemikalier-v1';
+  static const String _sIDPsykosocial = 'skyddsrond-psykosocial-v1';
+  static const String _sIDOvrigt = 'skyddsrond-ovrigt-v1';
+
   Future<void> loadData() async {
-    // Get references to the already opened boxes
     _checklistsBox = Hive.box<Checklist>(_checklistsBoxName);
     _savedLogsBox = Hive.box<SavedChecklistLog>(_savedLogsBoxName);
 
-    // Load data into local lists
     _checklists = _checklistsBox.values.toList();
-    // Sort logs by timestamp descending (newest first) after loading
     _savedLogs = _savedLogsBox.values.toList()
-      ..sort((a, b) => b.timestamp.compareTo(a.timestamp)); // Sort newest first
+      ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
-    debugPrint("ChecklistProvider: Loaded ${_checklists.length} checklists and ${_savedLogs.length} logs from Hive.");
+    debugPrint("ChecklistProvider: Loaded ${_checklists.length} checklists and ${_savedLogs.length} logs from Hive during initial load.");
 
-    // Important: Notify listeners after loading initial data
+    await _addDefaultChecklistsIfNecessary();
+
+    // The addChecklist method (called by _addDefaultChecklistsIfNecessary) already updates _checklists
+    // and calls notifyListeners. So, the _checklists list here will be up-to-date if defaults were added.
+    // A final notifyListeners() from loadData ensures UI updates even if no defaults were added
+    // but other initial loading aspects might warrant it.
+    debugPrint("ChecklistProvider: Final count after checking defaults - Checklists: ${_checklists.length}, Logs: ${_savedLogs.length}");
     notifyListeners();
   }
 
-  // --- UPDATED: Methods to interact with Hive ---
+  Future<void> _createAndAddChecklistIfNotExists({
+    required String id,
+    required String title,
+    required List<ChecklistItem> items,
+    String? comments,
+  }) async {
+    if (!_checklistsBox.containsKey(id)) {
+      debugPrint("ChecklistProvider: Default checklist '$title' (ID: $id) not found. Adding it now...");
+      final newChecklist = Checklist(
+        id: id,
+        title: title,
+        items: items,
+        comments: comments,
+      );
+      await addChecklist(newChecklist); // This method handles Hive and notifies listeners
+    } else {
+      debugPrint("ChecklistProvider: Default checklist '$title' (ID: $id) already exists.");
+    }
+  }
 
-  // Add a new checklist
+  Future<void> _addDefaultChecklistsIfNecessary() async {
+    // Section 1: Lokaler och inomhusmiljö
+    await _createAndAddChecklistIfNotExists(
+      id: _sIDLokaler,
+      title: "Lokaler & Inomhusmiljö",
+      items: [
+        ChecklistItem.newItem(text: "God belysning i alla arbetsutrymmen"),
+        ChecklistItem.newItem(text: "Tillräcklig ventilation och temperatur"),
+        ChecklistItem.newItem(text: "Golv och trappor är hela och halksäkra"),
+        ChecklistItem.newItem(text: "Utrymningsvägar är tydliga och fria"),
+      ],
+    );
+
+    // Section 2: Brandskydd och nödlägen
+    await _createAndAddChecklistIfNotExists(
+      id: _sIDBrandskydd,
+      title: "Brandskydd & Nödlägen",
+      items: [
+        ChecklistItem.newItem(text: "Utrymningsplan är uppsatt och aktuell"),
+        ChecklistItem.newItem(text: "Brandsläckare finns och är kontrollerade"),
+        ChecklistItem.newItem(text: "Personal känner till samlingsplats"),
+        ChecklistItem.newItem(text: "Nödutgångar är väl markerade"),
+      ],
+    );
+
+    // Section 3: Arbetsutrustning och hjälpmedel
+    await _createAndAddChecklistIfNotExists(
+      id: _sIDUtrustning,
+      title: "Arbetsutrustning & Hjälpmedel",
+      items: [
+        ChecklistItem.newItem(text: "Hjälpmedel är kontrollerade och fungerar"),
+        ChecklistItem.newItem(text: "Elutrustning är hel och säkert installerad"),
+        ChecklistItem.newItem(text: "Förflyttningshjälpmedel används korrekt"),
+      ],
+    );
+
+    // Section 4: Ergonomi och belastning
+    await _createAndAddChecklistIfNotExists(
+      id: _sIDErgonomi,
+      title: "Ergonomi & Belastning",
+      items: [
+        ChecklistItem.newItem(text: "Anpassade arbetsställningar är möjliga"),
+        ChecklistItem.newItem(text: "Tunga lyft undviks eller görs med hjälp"),
+        ChecklistItem.newItem(text: "Sitt- och ståarbetsplatser är ergonomiska"),
+      ],
+    );
+
+    // Section 5: Kemikalier och hygien
+    await _createAndAddChecklistIfNotExists(
+      id: _sIDKemikalier,
+      title: "Kemikalier & Hygien",
+      items: [
+        ChecklistItem.newItem(text: "Kemikalier är märkta och förvaras säkert"),
+        ChecklistItem.newItem(text: "Säkerhetsdatablad finns tillgängliga"),
+        ChecklistItem.newItem(text: "Rutiner för städning och hygien följs"),
+        ChecklistItem.newItem(text: "Skyddsutrustning finns och används rätt"),
+      ],
+    );
+
+    // Section 6: Psykosocial arbetsmiljö
+    await _createAndAddChecklistIfNotExists(
+      id: _sIDPsykosocial,
+      title: "Psykosocial Arbetsmiljö",
+      items: [
+        ChecklistItem.newItem(text: "Det råder god stämning i arbetsgruppen"),
+        ChecklistItem.newItem(text: "Arbetstakten är rimlig och hållbar"),
+        ChecklistItem.newItem(text: "Tydlig ansvarsfördelning i arbetslaget"),
+        ChecklistItem.newItem(text: "Rutiner mot kränkningar finns och följs"),
+      ],
+    );
+
+    // Section 7: Övrigt / Önskemål från personal
+    await _createAndAddChecklistIfNotExists(
+      id: _sIDOvrigt,
+      title: "Övrigt & Personalönskemål",
+      items: [
+        ChecklistItem.newItem(text: "Personalen upplever sig lyssnad på"),
+        ChecklistItem.newItem(text: "Finns det behov av nya rutiner eller stöd?"),
+      ],
+      comments: "Här kan övriga punkter och önskemål från personalen tas upp."
+    );
+  }
+
   Future<void> addChecklist(Checklist checklist) async {
-    // Add to Hive Box (use checklist.id as the key)
     await _checklistsBox.put(checklist.id, checklist);
-    // Update local list
-    _checklists = _checklistsBox.values.toList(); // Reload from box
+    _checklists = _checklistsBox.values.toList();
     notifyListeners();
-    debugPrint("Added checklist: ${checklist.title} to Hive.");
+    debugPrint("Added/Updated checklist: ${checklist.title} (ID: ${checklist.id}) to Hive.");
   }
 
-  // Add a saved checklist log
   Future<void> addSavedLog(SavedChecklistLog log) async {
-    // Add to Hive Box (use log.id as the key)
     await _savedLogsBox.put(log.id, log);
-    // Update local list and re-sort
     _savedLogs = _savedLogsBox.values.toList()
       ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
     notifyListeners();
     debugPrint("Added saved log for checklist: ${log.checklistTitle} to Hive.");
   }
 
-  // Find a checklist by its ID (can still use local list for reads)
   Checklist? findChecklistById(String id) {
     try {
-      // Find in the local list (which is loaded from Hive)
       return _checklists.firstWhere((checklist) => checklist.id == id);
-      // Alternatively, read directly from box: return _checklistsBox.get(id);
     } catch (e) {
-      return null;
+      return _checklistsBox.get(id);
     }
   }
 
-  // Update the status of an item within a specific checklist
   Future<void> updateItemStatus(String checklistId, String itemId, bool isChecked) async {
-    final checklist = _checklistsBox.get(checklistId); // Get from Hive
+    final checklist = _checklistsBox.get(checklistId);
     if (checklist != null) {
       final itemIndex = checklist.items.indexWhere((item) => item.id == itemId);
       if (itemIndex != -1) {
-        // Create a mutable copy of items
         final updatedItems = List<ChecklistItem>.from(checklist.items);
-        // Update the specific item
         updatedItems[itemIndex] = updatedItems[itemIndex].copyWith(isChecked: isChecked);
-        // Create a new Checklist object with updated items
         final updatedChecklist = checklist.copyWith(items: updatedItems);
-
-        // --- IMPORTANT: Save the updated checklist back to Hive ---
         await _checklistsBox.put(checklistId, updatedChecklist);
-
-        // Update local list
         _checklists = _checklistsBox.values.toList();
         notifyListeners();
       }
     }
   }
 
-  // Method to update comments
   Future<void> updateChecklistComments(String checklistId, String? newComments) async {
-    final checklist = _checklistsBox.get(checklistId); // Get from Hive
+    final checklist = _checklistsBox.get(checklistId);
     if (checklist != null) {
       final trimmedComment = newComments?.trim();
+      final commentsToSave = (trimmedComment == null || trimmedComment.isEmpty) ? null : trimmedComment;
       final updatedChecklist = checklist.copyWith(
-        comments: (trimmedComment == null || trimmedComment.isEmpty) ? null : trimmedComment,
-        // Explicitly handle setting to null if needed, copyWith might need adjustment
-        // setCommentsToNull: (trimmedComment == null || trimmedComment.isEmpty)
+        comments: commentsToSave,
+        setCommentsToNull: commentsToSave == null,
       );
-
-      // --- IMPORTANT: Save the updated checklist back to Hive ---
       await _checklistsBox.put(checklistId, updatedChecklist);
-
-      // Update local list
       _checklists = _checklistsBox.values.toList();
       notifyListeners();
       debugPrint("Updated comments for $checklistId in Hive.");
     }
   }
 
-  // Method to clear/uncheck all items
   Future<void> clearChecklistItems(String checklistId) async {
-    final checklist = _checklistsBox.get(checklistId); // Get from Hive
+    final checklist = _checklistsBox.get(checklistId);
     if (checklist != null) {
       final clearedItems = checklist.items
           .map((item) => item.copyWith(isChecked: false))
           .toList();
       final updatedChecklist = checklist.copyWith(items: clearedItems);
-
-      // --- IMPORTANT: Save the updated checklist back to Hive ---
       await _checklistsBox.put(checklistId, updatedChecklist);
-
-      // Update local list
       _checklists = _checklistsBox.values.toList();
       notifyListeners();
       debugPrint("Cleared items for $checklistId in Hive.");
     }
   }
 
-  // Delete a checklist
   Future<void> deleteChecklist(String id) async {
-    // Delete from Hive
     await _checklistsBox.delete(id);
-
-    // Optional: Delete associated logs if desired
-    // final logsToDelete = _savedLogsBox.values.where((log) => log.originalChecklistId == id).toList();
-    // for (var log in logsToDelete) {
-    //   await _savedLogsBox.delete(log.id);
-    // }
-
-    // Update local lists
     _checklists = _checklistsBox.values.toList();
-    // _savedLogs = _savedLogsBox.values.toList()..sort((a, b) => b.timestamp.compareTo(a.timestamp)); // Reload logs if they were deleted
-
     notifyListeners();
     debugPrint("Deleted checklist $id from Hive.");
   }
-
-  // --- Optional: Close boxes when provider is disposed (if necessary) ---
-  // @override
-  // void dispose() {
-  //   // Hive boxes usually stay open for the app's lifetime,
-  //   // but you could close them here if needed.
-  //   // Hive.close(); // Closes all boxes
-  //   super.dispose();
-  // }
 }
