@@ -1,7 +1,6 @@
 // lib/models/deviation_field.dart
-// UPPDATERAD FÖR ATT HANTERA 'isRequired' SOM EN STRÄNG
+// UPPDATERAD: Ny teori att "2" är obligatorisk + felsökningsutskrift.
 
-/// Representerar ett enskilt fält i avvikelseformuläret.
 class DeviationField {
   final String id;
   final String title;
@@ -19,14 +18,14 @@ class DeviationField {
     this.options = const {},
   });
 
-  /// Skapar ett DeviationField från en JSON-mapp från API:et.
   factory DeviationField.fromJson(String id, Map<String, dynamic> json) {
-    // MODIFIERAD LOGIK:
-    // Denna logik hanterar nu om 'required' är en äkta bool (true),
-    // en sträng ("true"), eller en siffra som sträng ("1").
-    final bool requiredValue = json['required'] == true || 
-                               json['required'] == 'true' || 
-                               json['required'] == '1';
+    // NY TEORI: Ett fält är obligatoriskt om 'required' har värdet "2".
+    final bool requiredValue = json['required'] == '2';
+
+    // NY FELSÖKNING: Skriv ut vilka fält som tolkas som obligatoriska.
+    if (requiredValue) {
+      print("Fältet '${json['title']}' har markerats som obligatoriskt.");
+    }
 
     return DeviationField(
       id: id,
