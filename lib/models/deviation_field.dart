@@ -1,5 +1,5 @@
 // lib/models/deviation_field.dart
-// UPPDATERAD: Ny teori att "2" är obligatorisk + felsökningsutskrift.
+// UPPDATERAD: Med den slutgiltiga, korrekta regeln för obligatoriska fält.
 
 class DeviationField {
   final String id;
@@ -19,10 +19,10 @@ class DeviationField {
   });
 
   factory DeviationField.fromJson(String id, Map<String, dynamic> json) {
-    // NY TEORI: Ett fält är obligatoriskt om 'required' har värdet "2".
-    final bool requiredValue = json['required'] == '2';
+    // KORREKT LOGIK: Enligt specifikationen från teamet.
+    final bool requiredValue = json['required'] == '2' || 
+                               json['required_kvalprak'] == '1';
 
-    // NY FELSÖKNING: Skriv ut vilka fält som tolkas som obligatoriska.
     if (requiredValue) {
       print("Fältet '${json['title']}' har markerats som obligatoriskt.");
     }

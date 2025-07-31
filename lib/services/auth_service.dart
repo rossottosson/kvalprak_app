@@ -1,16 +1,24 @@
 // lib/services/auth_service.dart
-// UPPDATERAD: Hanterar nu 2FA (OTP) vid inloggning.
+// FINAL VERSION: Korrekt hantering av 2FA-svaret från servern.
 
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:kvalprak_app/models/login_result.dart'; // Importera vår nya modell
+import 'package:kvalprak_app/models/login_result.dart';
 import 'package:kvalprak_app/services/url_service.dart';
+
+// Funktion för att logga långa strängar
+void logLong(String text, {int chunkSize = 800}) {
+  final pattern = RegExp('.{1,$chunkSize}', dotAll: true);
+  for (final match in pattern.allMatches(text)) {
+    debugPrint(match.group(0));
+  }
+}
 
 class AuthService {
   final _storage = const FlutterSecureStorage();
 
-  // Nycklar för säker lagring
   static const String _tokenKey = 'jwt_token';
   static const String _refreshTokenKey = 'refresh_token';
   static const String _emailKey = 'saved_email';
@@ -18,18 +26,15 @@ class AuthService {
   static const String _userNameKey = 'user_name';
   static const String _userEmailKey = 'user_email';
 
-  /// Försöker logga in användaren. Kan nu hantera OTP.
   Future<LoginResult> login(String email, String password, {String? otp, bool rememberMe = false}) async {
     try {
       final apiHost = await UrlService.getApiHost();
       final url = Uri.parse('https://$apiHost/api/auth/login');
 
-      // Bygg upp JSON-kroppen för anropet
       final Map<String, String> body = {
         'login_email': email,
         'login_password': password,
       };
-      // Lägg bara till OTP-fältet om ett värde har angetts
       if (otp != null && otp.isNotEmpty) {
         body['otp'] = otp;
       }
@@ -59,18 +64,19 @@ class AuthService {
         }
         return LoginResult(status: LoginResultStatus.success);
       } 
-      // Hantera 401-fel specifikt
       else if (response.statusCode == 401) {
         final data = json.decode(response.body);
-        // Kontrollera om servern säger att 2FA krävs
-        if (data['message']?.toString().contains('2FA required') ?? false) {
+        
+        // =================================================================
+        // === ÄNDRING: Vi letar nu bara efter "2FA" för att vara mer flexibla. ===
+        // =================================================================
+        if (data['message']?.toString().contains('2FA') ?? false) {
           return LoginResult(status: LoginResultStatus.twoFactorRequired);
         } else {
-          // Annars är det felaktiga inloggningsuppgifter
+          // Vi kan nu ta bort loggningen eftersom vi vet vad problemet var.
           return LoginResult(status: LoginResultStatus.failure, errorMessage: "Felaktiga inloggningsuppgifter.");
         }
       }
-      // Hantera alla andra fel
       else {
         return LoginResult(status: LoginResultStatus.failure, errorMessage: "Ett okänt fel uppstod (Status ${response.statusCode}).");
       }
@@ -81,7 +87,6 @@ class AuthService {
     }
   }
   
-  // ... resten av filen är oförändrad ...
   Future<String?> getCurrentUserName() async { return await _storage.read(key: _userNameKey); }
   Future<String?> getCurrentUserEmail() async { return await _storage.read(key: _userEmailKey); }
   Future<void> logout() async { await _storage.deleteAll(); print('Användare utloggad. All sparad data borttagen.'); }
