@@ -1,10 +1,10 @@
 // lib/action_select_screen.dart
-// MODIFIERAD: Flyttat "Byt klinik"-knappen till vänster (leading)
+// UPPDATERAD: Knappen för historik är temporärt inaktiverad och visar ett meddelande.
 
 import 'package:flutter/material.dart';
-import 'package:kvalprak_app/screens/deviation_form_screen.dart'; // Uppdaterad för att peka på nya skärmen
+import 'package:kvalprak_app/screens/deviation_form_screen.dart';
 import 'package:kvalprak_app/screens/checklists_overview_screen.dart';
-import 'package:kvalprak_app/screens/saved_checklists_screen.dart';
+// Borttagen import: import 'package:kvalprak_app/screens/saved_checklists_screen.dart';
 import 'package:kvalprak_app/services/url_service.dart';
 import 'package:kvalprak_app/screens/clinic_selection_screen.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -71,9 +71,7 @@ class ActionSelectScreen extends StatelessWidget {
             return const Text('Vårdna');
           },
         ),
-        // Sätt till false eftersom vi har en egen 'leading'-knapp
         automaticallyImplyLeading: false, 
-        // NYTT: 'leading'-egenskapen för knappen till vänster
         leading: Tooltip(
           message: "Byt klinik / Logga ut",
           child: IconButton(
@@ -83,7 +81,6 @@ class ActionSelectScreen extends StatelessWidget {
             },
           ),
         ),
-        // BORTTAGEN: 'actions'-listan för knappen till höger
         actions: const [],
       ),
       body: SafeArea(
@@ -154,10 +151,12 @@ class ActionSelectScreen extends StatelessWidget {
                   foregroundColor: colorScheme.onPrimary,
                 ),
                 onPressed: () {
-                  debugPrint('Navigating to Saved Checklists Screen');
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const SavedChecklistsScreen()),
+                  // ÄNDRING: Visa ett meddelande istället för att navigera
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Funktionen för historik kommer snart!'),
+                      duration: Duration(seconds: 2),
+                    ),
                   );
                 },
               ),

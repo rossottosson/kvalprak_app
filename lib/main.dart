@@ -1,32 +1,22 @@
 // lib/main.dart
-// MODIFIED FILE
+// UPPDATERAD: All Hive-relaterad kod har tagits bort.
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 
-import 'package:kvalprak_app/models/checklist.dart';
-import 'package:kvalprak_app/models/checklist_item.dart';
-import 'package:kvalprak_app/models/saved_checklist_log.dart';
+// Hive-importer är borttagna
 
-// --- Import the new AppInitializerScreen ---
 import 'package:kvalprak_app/screens/app_initializer_screen.dart';
-// LoginScreen and ClinicSelectionScreen are now launched by AppInitializerScreen
 import 'package:kvalprak_app/providers/checklist_provider.dart';
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized(); // Essential for SharedPreferences & Hive before runApp
-  await Hive.initFlutter();
-
-  Hive.registerAdapter(ChecklistAdapter());
-  Hive.registerAdapter(ChecklistItemAdapter());
-  Hive.registerAdapter(SavedChecklistLogAdapter());
-
-  await Hive.openBox<Checklist>('checklistsBox');
-  await Hive.openBox<SavedChecklistLog>('savedLogsBox');
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // All kod relaterad till Hive.initFlutter(), registerAdapter() och openBox() är borttagen.
 
   runApp(
     ChangeNotifierProvider(
-      create: (context) => ChecklistProvider()..loadData(),
+      create: (context) => ChecklistProvider(),
       child: const MyApp(),
     ),
   );
@@ -37,8 +27,8 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const Color primaryViolet = Color(0xFF6A1B9A); // Deep Purple Accent
-    const Color secondaryTurquoise = Color(0xFF00AFAB); // Tealish
+    const Color primaryViolet = Color(0xFF6A1B9A);
+    const Color secondaryTurquoise = Color(0xFF00AFAB);
 
     return MaterialApp(
       title: 'Kvalprak App',
@@ -48,26 +38,23 @@ class MyApp extends StatelessWidget {
           primary: primaryViolet,
           secondary: secondaryTurquoise,
           brightness: Brightness.light,
-          // Define other colors if needed, e.g., for containers, error
-          // onPrimary: Colors.white, // Color for text/icons on primary color
-          // onSecondary: Colors.white, // Color for text/icons on secondary color
         ),
         useMaterial3: true,
         appBarTheme: const AppBarTheme(
           backgroundColor: primaryViolet,
-          foregroundColor: Colors.white, // For title and icons
+          foregroundColor: Colors.white,
           elevation: 2,
           titleTextStyle: TextStyle(
-            color: Colors.white, // Explicitly set for title
+            color: Colors.white,
             fontSize: 20,
             fontWeight: FontWeight.w500,
           ),
-          iconTheme: IconThemeData(color: Colors.white), // For icons like back button
+          iconTheme: IconThemeData(color: Colors.white),
         ),
          elevatedButtonTheme: ElevatedButtonThemeData(
            style: ElevatedButton.styleFrom(
-              backgroundColor: primaryViolet, // Default for most elevated buttons
-              foregroundColor: Colors.white, // Text color on elevated buttons
+              backgroundColor: primaryViolet,
+              foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -77,7 +64,7 @@ class MyApp extends StatelessWidget {
         ),
          textButtonTheme: TextButtonThemeData(
           style: TextButton.styleFrom(
-            foregroundColor: primaryViolet, // Text color for text buttons
+            foregroundColor: primaryViolet,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
@@ -91,28 +78,16 @@ class MyApp extends StatelessWidget {
             borderRadius: BorderRadius.circular(12.0),
             borderSide: BorderSide(color: primaryViolet, width: 2.0),
           ),
-          floatingLabelStyle: TextStyle(color: primaryViolet), // For label when focused
+          floatingLabelStyle: TextStyle(color: primaryViolet),
         ),
-        // Add CardTheme if you want consistent card styling
         cardTheme: CardThemeData(
             elevation: 2.0,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
             margin: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 4.0),
         ),
-        // Add ListTileTheme for consistency
-        listTileTheme: const ListTileThemeData(
-            // iconColor: primaryViolet, // Example
-            // dense: true, // Example
-        ),
+        listTileTheme: const ListTileThemeData(),
       ),
-      // --- Set AppInitializerScreen as the home ---
       home: const AppInitializerScreen(),
-      // Define routes if you prefer named routes and are using Navigator.pushNamed
-      // routes: {
-      //   '/login': (context) => const LoginScreen(),
-      //   '/clinic_selection': (context) => const ClinicSelectionScreen(),
-      //   // ... other routes for your app if needed
-      // },
       debugShowCheckedModeBanner: false,
     );
   }

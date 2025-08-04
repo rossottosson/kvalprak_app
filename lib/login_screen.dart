@@ -84,14 +84,17 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Logga in'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          tooltip: 'Välj en annan klinik',
-          onPressed: _goBackToClinicSelection,
-        ),
-      ),
+      // I lib/login_screen.dart
+appBar: AppBar(
+  title: const Text('Logga in'),
+  // Nu behövs ingen egen 'leading'-knapp, Flutter lägger till en automatiskt.
+  // Om du vill ha kvar den för en egen tooltip kan du göra såhär:
+  leading: IconButton(
+    icon: const Icon(Icons.arrow_back),
+    tooltip: 'Välj en annan klinik',
+    onPressed: () => Navigator.of(context).pop(), // Använder enkel pop()
+  ),
+),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
         child: Column(

@@ -21,7 +21,7 @@ class _ClinicSelectionScreenState extends State<ClinicSelectionScreen> {
   Future<void> _findAndProceedToClinic() async {
     final userInput = _clinicInputController.text.trim();
     if (userInput.isEmpty) {
-      if (mounted) {
+      if (mounted) { 
         setState(() {
           _feedbackMessage = "Vänligen ange din kliniks namn eller ID.";
         });
@@ -50,7 +50,7 @@ class _ClinicSelectionScreenState extends State<ClinicSelectionScreen> {
       // En liten fördröjning för att visa meddelandet innan navigering
       await Future.delayed(const Duration(milliseconds: 1500));
       if (mounted) {
-        Navigator.of(context).pushReplacement(
+        Navigator.of(context).push(
           MaterialPageRoute(builder: (context) => const LoginScreen()),
         );
       }
