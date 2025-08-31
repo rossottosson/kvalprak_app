@@ -1,11 +1,19 @@
 // lib/services/checklist_service.dart
-// UPPDATERAD: Lade till loggning i submitChecklist för att se det verkliga svaret.
+// UPPDATERAD: Hanterar nu session timeouts (status 401) med ett eget undantag.
 
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:kvalprak_app/models/api_checklist_models.dart';
 import 'package:kvalprak_app/services/url_service.dart';
+
+// Eget undantag för att hantera session timeouts
+class SessionExpiredException implements Exception {
+  final String message;
+  SessionExpiredException(this.message);
+  @override
+  String toString() => message;
+}
 
 void logLong(String text, {int chunkSize = 800}) {
   final pattern = RegExp('.{1,$chunkSize}', dotAll: true);
@@ -18,15 +26,19 @@ class ChecklistService {
   // ... getChecklists och getQuestionsForPage är oförändrade från förra versionen ...
   Future<List<ApiChecklist>> getChecklists(String token) async {
     final apiHost = await UrlService.getApiHost();
-    final url = Uri.parse('https://$apiHost/api/checklist'); 
-    
+    final url = Uri.parse('https://$apiHost/api/checklist');
+
     final response = await http.get(url, headers: {'Authorization': 'Bearer $token'});
+
+    if (response.statusCode == 401) {
+      throw SessionExpiredException('Sessionen har gått ut.');
+    }
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       final checklistsMap = data['checklists'] as Map<String, dynamic>? ?? {};
       final pagesMap = data['pages'] as Map<String, dynamic>? ?? {};
-      
+
       final Map<String, ApiChecklistPage> pagesByFormId = {};
       pagesMap.forEach((pageKey, pageValue) {
         if (pageValue is Map<String, dynamic>) {
@@ -34,7 +46,7 @@ class ChecklistService {
           pagesByFormId[page.formId] = page;
         }
       });
-      
+
       final List<ApiChecklist> checklists = [];
       checklistsMap.forEach((key, value) {
         if (value is Map<String, dynamic>) {
@@ -61,12 +73,16 @@ class ChecklistService {
 
     final response = await http.get(url, headers: {'Authorization': 'Bearer $token'});
 
+    if (response.statusCode == 401) {
+      throw SessionExpiredException('Sessionen har gått ut.');
+    }
+
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       logLong('--- RAW DECODED QUESTIONS RESPONSE ---');
       logLong(const JsonEncoder.withIndent('  ').convert(data));
       logLong('--- END RAW DECODED QUESTIONS RESPONSE ---');
-      
+
       final pageInfo = ApiChecklistPage.fromJson(data['page']);
       final questionsData = data['questions'];
       final optionsData = data['options'];
@@ -95,15 +111,14 @@ class ChecklistService {
           }
         }
       }
-      
+
       questions.sort((a, b) => a.sort.compareTo(b.sort));
-      
+
       return ChecklistPageData(page: pageInfo, questions: questions);
     } else {
       throw Exception('Kunde inte ladda frågor (Status: ${response.statusCode})');
     }
   }
-
 
   // POST /api/checklist/{page_id}/submit
   Future<String?> submitChecklist(String token, String pageId, Map<String, dynamic> answers) async {
@@ -118,7 +133,11 @@ class ChecklistService {
       },
       body: json.encode(answers),
     );
-    
+
+    if (response.statusCode == 401) {
+      throw SessionExpiredException('Sessionen har gått ut.');
+    }
+
     // === NY LOGGNING AV SVARET ===
     debugPrint('Inskickning till servern gav status: ${response.statusCode}');
     logLong('--- RAW SUBMIT RESPONSE ---');
@@ -129,7 +148,7 @@ class ChecklistService {
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       // Vi litar på att ett 200 OK betyder success, även om 'success' eller 'survey_id' saknas.
-      if (data['success'] == true || data.isEmpty) { 
+      if (data['success'] == true || data.isEmpty) {
         return data['survey_id'] as String? ?? 'success'; // Returnera 'success' om id saknas
       }
       return null;
@@ -146,10 +165,14 @@ class ChecklistService {
 
     final response = await http.get(url, headers: {'Authorization': 'Bearer $token'});
 
+    if (response.statusCode == 401) {
+      throw SessionExpiredException('Sessionen har gått ut.');
+    }
+
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       final submissionsList = data['submissions'] as List<dynamic>;
-      
+
       final submissions = submissionsList.map((subJson) {
         return ApiSubmission.fromJson(subJson);
       }).toList();

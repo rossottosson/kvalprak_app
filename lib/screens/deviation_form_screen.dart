@@ -1,5 +1,5 @@
 // lib/screens/deviation_form_screen.dart
-// UPPDATERAD: Fångar nu SessionExpiredException och navigerar till login.
+// UPPDATERAD: Förhandsväljer det första alternativet i alla dropdown-menyer.
 
 import 'dart:io';
 import 'dart:convert';
@@ -25,9 +25,9 @@ class _DeviationFormScreenState extends State<DeviationFormScreen> {
   final _authService = AuthService();
   final _formKey = GlobalKey<FormState>();
   final SpeechToText _speechToText = SpeechToText();
-  
-  late final String _newDeviationId; 
-  final Set<String> _uploadingFiles = {}; 
+
+  late final String _newDeviationId;
+  final Set<String> _uploadingFiles = {};
 
   final List<String> _selectedEmailIds = [];
 
@@ -46,11 +46,11 @@ class _DeviationFormScreenState extends State<DeviationFormScreen> {
   @override
   void initState() {
     super.initState();
-    _newDeviationId = const Uuid().v4(); 
+    _newDeviationId = const Uuid().v4();
     _initSpeech();
     _loadForm();
   }
-  
+
   void _handleSessionExpired() {
     if (!mounted) return;
     // Säkerställ att vi inte bygger widgets under en build-fas
@@ -87,16 +87,28 @@ class _DeviationFormScreenState extends State<DeviationFormScreen> {
         _isLoading = false;
 
         for (var field in _fields) {
+          // Sätt upp text controllers och fyll i standardvärden
           final controller = TextEditingController();
           final titleLower = field.title.toLowerCase();
           if (titleLower.contains('händelsedatum')) {
             controller.text = DateFormat('yyyy-MM-dd').format(DateTime.now());
           } else if (titleLower.contains('anmält av') && userName != null && userEmail != null) {
-              controller.text = '$userName ($userEmail)';
+            controller.text = '$userName ($userEmail)';
           } else if (titleLower.contains('e-post') && userEmail != null && field.inputType != 'email') {
             controller.text = userEmail;
           }
           _controllers[field.id] = controller;
+
+          // NY LOGIK: Om fältet är en dropdown, välj det första alternativet
+          if (field.inputType == 'dropdown' || field.inputType == 'department' || field.inputType == 'eventanalysis') {
+            final fieldOptions = _options[field.id] as Map<String, dynamic>? ?? {};
+            if (fieldOptions.isNotEmpty) {
+              // Hämta ID för det första alternativet i listan
+              final firstOptionId = fieldOptions.keys.first;
+              // Sätt det som det valda värdet i state
+              _dropdownValues[field.id] = firstOptionId;
+            }
+          }
         }
       });
     } on SessionExpiredException {
@@ -115,11 +127,14 @@ class _DeviationFormScreenState extends State<DeviationFormScreen> {
       setState(() => _isLoading = true);
       final token = await _authService.getToken();
       if (token == null) {
-         _handleSessionExpired();
+        _handleSessionExpired();
         return;
       }
 
-      Map<String, dynamic> submissionData = {'page': 1, 'id': _newDeviationId,};
+      Map<String, dynamic> submissionData = {
+        'page': 1,
+        'id': _newDeviationId,
+      };
       DeviationField? emailField;
       try {
         emailField = _fields.firstWhere((field) => field.inputType == 'email');
@@ -140,7 +155,7 @@ class _DeviationFormScreenState extends State<DeviationFormScreen> {
         } else if (inputType == 'email') {
           continue;
         } else if (inputType == 'upload') {
-           continue;
+          continue;
         } else {
           final controllerValue = _controllers[fieldId]?.text;
           if (controllerValue != null && controllerValue.isNotEmpty) {
@@ -172,16 +187,16 @@ class _DeviationFormScreenState extends State<DeviationFormScreen> {
           );
         }
       } on SessionExpiredException {
-         _handleSessionExpired();
+        _handleSessionExpired();
       } catch (e) {
-         if (!mounted) return;
-         setState(() => _isLoading = false);
-         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Ett okänt fel uppstod: $e'), backgroundColor: Colors.red),
-          );
+        if (!mounted) return;
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ett okänt fel uppstod: $e'), backgroundColor: Colors.red),
+        );
       }
     } else {
-       ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Vänligen fyll i alla obligatoriska fält.'), backgroundColor: Colors.orange),
       );
     }
@@ -201,7 +216,7 @@ class _DeviationFormScreenState extends State<DeviationFormScreen> {
       _imageFiles.add(pickedFile);
       _uploadingFiles.add(pickedFile.path);
     });
-    
+
     try {
       final success = await _deviationService.uploadAttachment(
         token: token,
@@ -210,7 +225,7 @@ class _DeviationFormScreenState extends State<DeviationFormScreen> {
       );
 
       if (!mounted) return;
-      
+
       setState(() {
         _uploadingFiles.remove(pickedFile.path);
       });
@@ -223,16 +238,16 @@ class _DeviationFormScreenState extends State<DeviationFormScreen> {
       }
     } on SessionExpiredException {
       _handleSessionExpired();
-    } catch(e) {
-       if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ett okänt fel uppstod vid uppladdning: $e')));
-        setState(() {
-          _imageFiles.removeWhere((file) => file.path == pickedFile.path);
-          _uploadingFiles.remove(pickedFile.path);
-        });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ett okänt fel uppstod vid uppladdning: $e')));
+      setState(() {
+        _imageFiles.removeWhere((file) => file.path == pickedFile.path);
+        _uploadingFiles.remove(pickedFile.path);
+      });
     }
   }
-  
+
   // ----- All kod under denna rad är oförändrad från din version -----
 
   String? _validateEmails(String? value) {
@@ -251,7 +266,7 @@ class _DeviationFormScreenState extends State<DeviationFormScreen> {
   }
 
   void _initSpeech() async {
-     _speechEnabled = await _speechToText.initialize();
+    _speechEnabled = await _speechToText.initialize();
     if (_speechEnabled) {
       var locales = await _speechToText.locales();
       var foundLocale = locales.firstWhere((l) => l.localeId.startsWith('sv'), orElse: () => locales.firstWhere((l) => l.localeId == 'en_US', orElse: () => locales.first));
@@ -337,7 +352,7 @@ class _DeviationFormScreenState extends State<DeviationFormScreen> {
                       const SizedBox(height: 32),
                       ElevatedButton(
                         onPressed: _uploadingFiles.isNotEmpty ? null : _submitForm,
-                        child: _uploadingFiles.isNotEmpty 
+                        child: _uploadingFiles.isNotEmpty
                             ? const Text('Väntar på filuppladdning...')
                             : const Text('Skicka Rapport'),
                       ),
@@ -349,7 +364,7 @@ class _DeviationFormScreenState extends State<DeviationFormScreen> {
 
   List<Widget> _buildFormFields() {
     final fieldsToBuild = _fields.where((f) => f.inputType != 'upload').toList();
-    
+
     return fieldsToBuild.map((field) {
       switch (field.inputType) {
         case 'date':
@@ -481,7 +496,7 @@ class _DeviationFormScreenState extends State<DeviationFormScreen> {
                     final optionId = entry.key;
                     final optionName = entry.value['name'] as String;
                     final isSelected = tempSelectedIds.contains(optionId);
-                    
+
                     return CheckboxListTile(
                       title: Text(optionName),
                       value: isSelected,
@@ -524,7 +539,7 @@ class _DeviationFormScreenState extends State<DeviationFormScreen> {
   Widget _buildDropdownField(DeviationField field) {
     final List<DropdownMenuItem<String>> items = [];
     final fieldOptions = _options[field.id] as Map<String, dynamic>? ?? {};
-    
+
     fieldOptions.forEach((key, value) {
       items.add(DropdownMenuItem(value: key, child: Text(value['name'].toString())));
     });

@@ -1,5 +1,5 @@
 // lib/services/auth_service.dart
-// UPPDATERAD: Logout-metoden rensar nu även den valda kliniken för en komplett återställning.
+// UPPDATERAD: Logout-metoden raderar nu endast sessionen, inte sparade credentials.
 
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
@@ -37,7 +37,7 @@ class AuthService {
       if (otp != null && otp.isNotEmpty) {
         body['otp'] = otp;
       }
-      
+
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
@@ -58,39 +58,58 @@ class AuthService {
           await _clearSavedCredentials();
         }
         return LoginResult(status: LoginResultStatus.success);
-      } 
-      else if (response.statusCode == 401) {
+      } else if (response.statusCode == 401) {
         final data = json.decode(response.body);
         if (data['message']?.toString().contains('2FA') ?? false) {
           return LoginResult(status: LoginResultStatus.twoFactorRequired);
         } else {
           return LoginResult(status: LoginResultStatus.failure, errorMessage: "Felaktiga inloggningsuppgifter.");
         }
-      }
-      else {
+      } else {
         return LoginResult(status: LoginResultStatus.failure, errorMessage: "Ett okänt fel uppstod (Status ${response.statusCode}).");
       }
-
     } catch (e) {
       return LoginResult(status: LoginResultStatus.failure, errorMessage: "Kunde inte ansluta till servern.");
     }
   }
-  
+
   // ===================================
   // === HÄR ÄR ÄNDRINGEN ===
   // ===================================
   Future<void> logout() async {
-    // Raderar all säker data: token, användarinfo, sparat lösenord etc.
-    await _storage.deleteAll();
-    // Raderar även den valda kliniken för en total återställning
+    // Raderar endast sessions-specifik data. Sparat lösenord och e-post lämnas kvar.
+    await _storage.delete(key: _tokenKey);
+    await _storage.delete(key: _refreshTokenKey);
+    await _storage.delete(key: _userNameKey);
+    await _storage.delete(key: _userEmailKey);
+
+    // Raderar den valda kliniken för en total återställning av sessionen.
     await UrlService.clearSelectedClinic();
-    print('Användare utloggad. All sparad data och klinikval borttagen.');
+    print('Användare utloggad. Session raderad, men sparade credentials bevarade.');
   }
-  
-  Future<String?> getCurrentUserName() async { return await _storage.read(key: _userNameKey); }
-  Future<String?> getCurrentUserEmail() async { return await _storage.read(key: _userEmailKey); }
-  Future<String?> getSavedEmail() async { return await _storage.read(key: _emailKey); }
-  Future<String?> getSavedPassword() async { return await _storage.read(key: _passwordKey); }
-  Future<void> _clearSavedCredentials() async { await _storage.delete(key: _emailKey); await _storage.delete(key: _passwordKey); }
-  Future<String?> getToken() async { return await _storage.read(key: _tokenKey); }
+
+  Future<String?> getCurrentUserName() async {
+    return await _storage.read(key: _userNameKey);
+  }
+
+  Future<String?> getCurrentUserEmail() async {
+    return await _storage.read(key: _userEmailKey);
+  }
+
+  Future<String?> getSavedEmail() async {
+    return await _storage.read(key: _emailKey);
+  }
+
+  Future<String?> getSavedPassword() async {
+    return await _storage.read(key: _passwordKey);
+  }
+
+  Future<void> _clearSavedCredentials() async {
+    await _storage.delete(key: _emailKey);
+    await _storage.delete(key: _passwordKey);
+  }
+
+  Future<String?> getToken() async {
+    return await _storage.read(key: _tokenKey);
+  }
 }

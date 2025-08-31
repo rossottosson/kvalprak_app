@@ -1,13 +1,13 @@
 // lib/action_select_screen.dart
-// UPPDATERAD: Knappen för historik är temporärt inaktiverad och visar ett meddelande.
+// UPPDATERAD: Anropar nu AuthService.logout() för en konsekvent utloggning.
 
 import 'package:flutter/material.dart';
 import 'package:kvalprak_app/screens/deviation_form_screen.dart';
 import 'package:kvalprak_app/screens/checklists_overview_screen.dart';
-// Borttagen import: import 'package:kvalprak_app/screens/saved_checklists_screen.dart';
+import 'package:kvalprak_app/screens/main_menus_screen.dart';
+import 'package:kvalprak_app/services/auth_service.dart'; // Ny import
 import 'package:kvalprak_app/services/url_service.dart';
 import 'package:kvalprak_app/screens/clinic_selection_screen.dart';
-import 'package:webview_flutter/webview_flutter.dart';
 
 class ActionSelectScreen extends StatelessWidget {
   const ActionSelectScreen({super.key});
@@ -18,8 +18,7 @@ class ActionSelectScreen extends StatelessWidget {
       builder: (BuildContext dialogContext) {
         return AlertDialog(
           title: const Text('Byt klinik'),
-          content: const Text(
-              'Är du säker på att du vill byta klinik? Detta kommer att logga ut dig och du måste välja en ny klinik för att fortsätta.'),
+          content: const Text('Är du säker på att du vill byta klinik? Detta kommer att logga ut dig och du måste välja en ny klinik för att fortsätta.'),
           actions: <Widget>[
             TextButton(
               child: const Text('Avbryt'),
@@ -36,10 +35,8 @@ class ActionSelectScreen extends StatelessWidget {
     );
 
     if (confirm == true && context.mounted) {
-      final WebViewCookieManager cookieManager = WebViewCookieManager();
-      await cookieManager.clearCookies();
-      
-      await UrlService.clearSelectedClinic();
+      // ANVÄND DEN KONSEKVENTA LOGOUT-METODEN
+      await AuthService().logout();
 
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const ClinicSelectionScreen()),
@@ -71,7 +68,7 @@ class ActionSelectScreen extends StatelessWidget {
             return const Text('Vårdna');
           },
         ),
-        automaticallyImplyLeading: false, 
+        automaticallyImplyLeading: false,
         leading: Tooltip(
           message: "Byt klinik / Logga ut",
           child: IconButton(
@@ -102,7 +99,6 @@ class ActionSelectScreen extends StatelessWidget {
                 },
               ),
               const SizedBox(height: 150),
-
               ElevatedButton.icon(
                 icon: const Icon(Icons.warning_amber_rounded, size: 28),
                 label: const Text('Rapportera avvikelse'),
@@ -121,7 +117,6 @@ class ActionSelectScreen extends StatelessWidget {
                 },
               ),
               const SizedBox(height: 20),
-
               ElevatedButton.icon(
                 icon: const Icon(Icons.checklist_rtl_rounded, size: 28),
                 label: const Text('Checklistor'),
@@ -140,8 +135,24 @@ class ActionSelectScreen extends StatelessWidget {
                 },
               ),
               const SizedBox(height: 20),
-
-              
+              // NY KNAPP FÖR DOKUMENT
+              ElevatedButton.icon(
+                icon: const Icon(Icons.folder_copy_outlined, size: 28),
+                label: const Text('Dokument'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  textStyle: textTheme.titleLarge?.copyWith(color: Colors.white),
+                  backgroundColor: primaryColor, // Använder appens primära lila färg
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () {
+                  debugPrint('Navigating to Main Menus Screen');
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const MainMenusScreen()),
+                  );
+                },
+              ),
             ],
           ),
         ),

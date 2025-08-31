@@ -1,5 +1,5 @@
 // lib/providers/checklist_provider.dart
-// OMbyggd FÖR ATT ANVÄNDA ChecklistService OCH API-ANROP ISTÄLLET FÖR HIVE
+// UPPDATERAD: Fångar och kastar vidare SessionExpiredException.
 
 import 'package:flutter/foundation.dart';
 import 'package:kvalprak_app/models/api_checklist_models.dart';
@@ -13,7 +13,7 @@ class ChecklistProvider with ChangeNotifier {
   // State för listan med checklistor
   List<ApiChecklist> _checklists = [];
   List<ApiChecklist> get checklists => List.unmodifiable(_checklists);
-  
+
   // State för den checklista som användaren just nu tittar på
   ChecklistPageData? _currentPageData;
   ChecklistPageData? get currentPageData => _currentPageData;
@@ -32,9 +32,7 @@ class ChecklistProvider with ChangeNotifier {
   Future<void> fetchChecklists() async {
     final token = await _authService.getToken();
     if (token == null) {
-      _error = "Autentisering saknas.";
-      notifyListeners();
-      return;
+      throw SessionExpiredException("Autentisering saknas.");
     }
 
     _isLoading = true;
@@ -43,6 +41,8 @@ class ChecklistProvider with ChangeNotifier {
 
     try {
       _checklists = await _checklistService.getChecklists(token);
+    } on SessionExpiredException {
+      rethrow; // Kastar vidare undantaget för att hanteras i UI-lagret
     } catch (e) {
       _error = e.toString();
     } finally {
@@ -55,11 +55,9 @@ class ChecklistProvider with ChangeNotifier {
   Future<void> fetchQuestions(String pageId) async {
     final token = await _authService.getToken();
     if (token == null) {
-      _error = "Autentisering saknas.";
-      notifyListeners();
-      return;
+      throw SessionExpiredException("Autentisering saknas.");
     }
-    
+
     _isLoading = true;
     _error = null;
     _currentPageData = null; // Rensa gammal data
@@ -67,6 +65,8 @@ class ChecklistProvider with ChangeNotifier {
 
     try {
       _currentPageData = await _checklistService.getQuestionsForPage(token, pageId);
+    } on SessionExpiredException {
+      rethrow; // Kastar vidare undantaget
     } catch (e) {
       _error = e.toString();
     } finally {
@@ -74,22 +74,22 @@ class ChecklistProvider with ChangeNotifier {
       notifyListeners();
     }
   }
-  
+
   // Skickar in svaren för en checklista
   Future<bool> submitAnswers(String pageId, Map<String, dynamic> answers) async {
-     final token = await _authService.getToken();
+    final token = await _authService.getToken();
     if (token == null) {
-      _error = "Autentisering saknas.";
-      notifyListeners();
-      return false;
+      throw SessionExpiredException("Autentisering saknas.");
     }
-    
+
     _isLoading = true;
     notifyListeners();
 
     try {
       final surveyId = await _checklistService.submitChecklist(token, pageId, answers);
       return surveyId != null;
+    } on SessionExpiredException {
+      rethrow; // Kastar vidare undantaget
     } catch (e) {
       _error = e.toString();
       return false;
@@ -101,13 +101,11 @@ class ChecklistProvider with ChangeNotifier {
 
   // Hämtar historik för en specifik checklista
   Future<void> fetchSubmissions(String pageId) async {
-     final token = await _authService.getToken();
+    final token = await _authService.getToken();
     if (token == null) {
-      _error = "Autentisering saknas.";
-      notifyListeners();
-      return;
+      throw SessionExpiredException("Autentisering saknas.");
     }
-    
+
     _isLoading = true;
     _error = null;
     _submissions = []; // Rensa gammal data
@@ -115,6 +113,8 @@ class ChecklistProvider with ChangeNotifier {
 
     try {
       _submissions = await _checklistService.getSubmissionsForPage(token, pageId);
+    } on SessionExpiredException {
+      rethrow; // Kastar vidare undantaget
     } catch (e) {
       _error = e.toString();
     } finally {

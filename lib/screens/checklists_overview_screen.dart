@@ -1,11 +1,13 @@
 // lib/screens/checklists_overview_screen.dart
-// HELT OMbygd FÖR ATT ANVÄNDA DEN NYA API-DRIVNA ChecklistProvider
+// UPPDATERAD: Fångar nu SessionExpiredException och navigerar till login.
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:kvalprak_app/providers/checklist_provider.dart';
 import 'package:kvalprak_app/screens/checklist_detail_screen.dart';
-import 'package:kvalprak_app/models/api_checklist_models.dart'; // Importera de nya modellerna
+import 'package:kvalprak_app/models/api_checklist_models.dart';
+import 'package:kvalprak_app/services/checklist_service.dart'; // Importera för exception
+import 'package:kvalprak_app/login_screen.dart'; // Importera för navigation
 
 // Vi gör om skärmen till en StatefulWidget för att kunna hämta data i initState
 class ChecklistsOverviewScreen extends StatefulWidget {
@@ -16,21 +18,40 @@ class ChecklistsOverviewScreen extends StatefulWidget {
 }
 
 class _ChecklistsOverviewScreenState extends State<ChecklistsOverviewScreen> {
-
   @override
   void initState() {
     super.initState();
-    // Anropa providern för att hämta checklistorna från API:et när skärmen byggs.
-    // Vi använder addPostFrameCallback för att säkerställa att Provider är tillgänglig.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Använd 'read' i initState och andra engångs-anrop.
-      context.read<ChecklistProvider>().fetchChecklists();
+      _fetchData();
     });
+  }
+
+  void _handleSessionExpired() {
+    if (!mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Din session har gått ut. Vänligen logga in igen.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+        (Route<dynamic> route) => false,
+      );
+    });
+  }
+
+  Future<void> _fetchData() async {
+    try {
+      await context.read<ChecklistProvider>().fetchChecklists();
+    } on SessionExpiredException {
+      _handleSessionExpired();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Använd 'watch' i build-metoden för att lyssna på ändringar
     final checklistProvider = context.watch<ChecklistProvider>();
     final TextTheme textTheme = Theme.of(context).textTheme;
 
@@ -38,19 +59,15 @@ class _ChecklistsOverviewScreenState extends State<ChecklistsOverviewScreen> {
       appBar: AppBar(
         title: const Text('Checklistor'),
       ),
-      // Body bygger nu sitt utseende baserat på state från providern
       body: _buildBody(checklistProvider, textTheme),
     );
   }
 
-  // Hjälpmetod för att hålla build-metoden ren
   Widget _buildBody(ChecklistProvider provider, TextTheme textTheme) {
-    // 1. Om vi laddar, visa en progress indicator
     if (provider.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    // 2. Om ett fel har inträffat, visa ett felmeddelande
     if (provider.error != null) {
       return Center(
         child: Padding(
@@ -64,7 +81,6 @@ class _ChecklistsOverviewScreenState extends State<ChecklistsOverviewScreen> {
       );
     }
 
-    // 3. Om listan är tom (och vi inte laddar), visa ett meddelande om det
     if (provider.checklists.isEmpty) {
       return Center(
         child: Padding(
@@ -78,7 +94,6 @@ class _ChecklistsOverviewScreenState extends State<ChecklistsOverviewScreen> {
       );
     }
 
-    // 4. Om allt är bra och vi har data, bygg listan
     final List<ApiChecklist> checklists = provider.checklists;
     return ListView.builder(
       padding: const EdgeInsets.all(8.0),
@@ -94,14 +109,11 @@ class _ChecklistsOverviewScreenState extends State<ChecklistsOverviewScreen> {
             ),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
-              // Navigera till detaljvyn och skicka med den unika pageId
-              // som behövs för att hämta frågorna.
               Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (_) => ChecklistDetailScreen(
-                    // Notera: Vi skickar nu pageId, inte checklistId/formId
-                    pageId: checklist.page.pageId, 
+                    pageId: checklist.page.pageId,
                     checklistTitle: checklist.name,
                   ),
                 ),
