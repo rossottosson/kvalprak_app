@@ -53,19 +53,18 @@ class _DeviationFormScreenState extends State<DeviationFormScreen> {
 
   void _handleSessionExpired() {
     if (!mounted) return;
-    // Säkerställ att vi inte bygger widgets under en build-fas
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Din session har gått ut. Vänligen logga in igen.'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
-        (Route<dynamic> route) => false,
-      );
-    });
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Din session har gått ut. Vänligen logga in igen.'),
+        backgroundColor: Colors.orange,
+      ),
+    );
+    
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
+      (Route<dynamic> route) => false,
+    );
   }
 
   Future<void> _loadForm() async {

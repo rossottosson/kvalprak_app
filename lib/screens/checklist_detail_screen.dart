@@ -38,18 +38,18 @@ class _ChecklistDetailScreenState extends State<ChecklistDetailScreen> {
 
   void _handleSessionExpired() {
     if (!mounted) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Din session har gått ut. Vänligen logga in igen.'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
-        (Route<dynamic> route) => false,
-      );
-    });
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Din session har gått ut. Vänligen logga in igen.'),
+        backgroundColor: Colors.orange,
+      ),
+    );
+    
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
+      (Route<dynamic> route) => false,
+    );
   }
 
   Future<void> _fetchQuestions() async {
@@ -249,22 +249,29 @@ class _ChecklistDetailScreenState extends State<ChecklistDetailScreen> {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ToggleButtons(
-                        isSelected: [
-                          if (question.options.isNotEmpty)
-                            _answers[question.questionId] == question.options[0].optionId,
-                          if (question.options.length > 1)
-                            _answers[question.questionId] == question.options[1].optionId,
-                        ],
-                        onPressed: (int index) {
-                          setState(() {
-                            _answers[question.questionId] = question.options[index].optionId;
-                            formFieldState.didChange(_answers[question.questionId]);
-                          });
-                        },
-                        borderRadius: BorderRadius.circular(8.0),
-                        constraints: BoxConstraints(minWidth: (MediaQuery.of(context).size.width - 120) / 2, minHeight: 40.0),
-                        children: question.options.map((opt) => Text(opt.name)).toList(),
+                      Wrap(
+                        spacing: 8.0, // Mellanrum i sidled
+                        runSpacing: 8.0, // Mellanrum i höjdled när de bryts till ny rad
+                        children: question.options.map((opt) {
+                          final bool isSelected = _answers[question.questionId] == opt.optionId;
+                          return ChoiceChip(
+                            label: Text(opt.name),
+                            selected: isSelected,
+                            onSelected: (bool selected) {
+                              setState(() {
+                                // Vid radio-knappar sätter vi alltid värdet till det valda alternativet
+                                _answers[question.questionId] = opt.optionId;
+                                formFieldState.didChange(opt.optionId);
+                              });
+                            },
+                            // Lite styling så det ser snyggt ut och passar appens färgtema
+                            selectedColor: Theme.of(context).primaryColor.withOpacity(0.2),
+                            labelStyle: TextStyle(
+                              color: isSelected ? Theme.of(context).primaryColor : Colors.black87,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            ),
+                          );
+                        }).toList(),
                       ),
                       if (formFieldState.hasError)
                         Padding(

@@ -1,4 +1,4 @@
-package com.example.vardna_app_ny
+package com.orna.vardnaapp
 
 import io.flutter.embedding.android.FlutterActivity
 
