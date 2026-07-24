@@ -1,5 +1,4 @@
 // lib/screens/checklist_detail_screen.dart
-// UPPDATERAD: Fångar nu SessionExpiredException och navigerar till login.
 
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -7,8 +6,8 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:kvalprak_app/models/api_checklist_models.dart';
 import 'package:kvalprak_app/providers/checklist_provider.dart';
-import 'package:kvalprak_app/services/checklist_service.dart'; // Importera för exception
-import 'package:kvalprak_app/login_screen.dart'; // Importera för navigation
+import 'package:kvalprak_app/login_screen.dart'; 
+import 'package:kvalprak_app/services/exceptions.dart';
 
 class ChecklistDetailScreen extends StatefulWidget {
   final String pageId;
@@ -57,6 +56,8 @@ class _ChecklistDetailScreenState extends State<ChecklistDetailScreen> {
       await context.read<ChecklistProvider>().fetchQuestions(widget.pageId);
     } on SessionExpiredException {
       _handleSessionExpired();
+    } catch (e) {
+      print("Ett annat fel uppstod: $e");
     }
   }
 
@@ -99,6 +100,8 @@ class _ChecklistDetailScreenState extends State<ChecklistDetailScreen> {
       }
     } on SessionExpiredException {
       _handleSessionExpired();
+    } catch (e) {
+      print("Ett annat fel uppstod: $e");
     }
   }
 
@@ -250,8 +253,8 @@ class _ChecklistDetailScreenState extends State<ChecklistDetailScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Wrap(
-                        spacing: 8.0, // Mellanrum i sidled
-                        runSpacing: 8.0, // Mellanrum i höjdled när de bryts till ny rad
+                        spacing: 8.0, 
+                        runSpacing: 8.0, 
                         children: question.options.map((opt) {
                           final bool isSelected = _answers[question.questionId] == opt.optionId;
                           return ChoiceChip(
@@ -259,12 +262,10 @@ class _ChecklistDetailScreenState extends State<ChecklistDetailScreen> {
                             selected: isSelected,
                             onSelected: (bool selected) {
                               setState(() {
-                                // Vid radio-knappar sätter vi alltid värdet till det valda alternativet
                                 _answers[question.questionId] = opt.optionId;
                                 formFieldState.didChange(opt.optionId);
                               });
                             },
-                            // Lite styling så det ser snyggt ut och passar appens färgtema
                             selectedColor: Theme.of(context).primaryColor.withOpacity(0.2),
                             labelStyle: TextStyle(
                               color: isSelected ? Theme.of(context).primaryColor : Colors.black87,

@@ -1,5 +1,4 @@
 // lib/services/auth_service.dart
-// UPPDATERAD: Logout-metoden raderar nu endast sessionen, inte sparade credentials.
 
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
@@ -46,6 +45,7 @@ class AuthService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        _debugLogJwtPayload(data['token'], 'VANLIG LOGIN');
         await _storage.write(key: _tokenKey, value: data['token']);
         await _storage.write(key: _refreshTokenKey, value: data['refresh_token']);
         await _storage.write(key: _userNameKey, value: data['name']);
@@ -73,17 +73,12 @@ class AuthService {
     }
   }
 
-  // ===================================
-  // === HÄR ÄR ÄNDRINGEN ===
-  // ===================================
   Future<void> logout() async {
-    // Raderar endast sessions-specifik data. Sparat lösenord och e-post lämnas kvar.
     await _storage.delete(key: _tokenKey);
     await _storage.delete(key: _refreshTokenKey);
     await _storage.delete(key: _userNameKey);
     await _storage.delete(key: _userEmailKey);
 
-    // Raderar den valda kliniken för en total återställning av sessionen.
     await UrlService.clearSelectedClinic();
     print('Användare utloggad. Session raderad, men sparade credentials bevarade.');
   }
@@ -112,4 +107,107 @@ class AuthService {
   Future<String?> getToken() async {
     return await _storage.read(key: _tokenKey);
   }
+
+  Future<bool> hasSavedRefreshToken() async {
+    final token = await _storage.read(key: _refreshTokenKey);
+    return token != null && token.isNotEmpty;
+  }
+
+  Future<String?> trySilentRefreshToken() async {
+    final email = await getSavedEmail();
+    final refreshToken = await _storage.read(key: _refreshTokenKey);
+    final currentToken = await _storage.read(key: _tokenKey); 
+    
+    if (email == null || refreshToken == null) return null; // Ändrat till null
+
+    try {
+      final apiHost = await UrlService.getApiHost();
+      final url = Uri.parse('https://$apiHost/api/auth/refresh'); 
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          if (currentToken != null) 'Authorization': 'Bearer $currentToken',
+        },
+        body: json.encode({
+          'refresh_token': refreshToken, 
+          'login_email': email,           
+        }),
+      );
+
+      debugPrint('--- RAW REFRESH RESPONSE ---');
+      debugPrint('Status: ${response.statusCode}');
+      debugPrint('-----------------------------');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        
+        // Fånga den nya nyckeln i en variabel först!
+        String? newToken = data['token'] ?? data['access_token'];
+        _debugLogJwtPayload(newToken, 'SILENT REFRESH (Face ID)');
+        
+        if (newToken != null) {
+          await _storage.write(key: _tokenKey, value: newToken);
+        }
+        
+        if (data['refresh_token'] != null) {
+          await _storage.write(key: _refreshTokenKey, value: data['refresh_token']);
+        }
+        
+        if (data['name'] != null) {
+          await _storage.write(key: _userNameKey, value: data['name']);
+        }
+        if (data['email'] != null) {
+          await _storage.write(key: _userEmailKey, value: data['email']);
+        }
+        
+        // ÄNDRING: Returnera den nya nyckeln direkt till ApiService!
+        return newToken; 
+      } else {
+        return null;
+      }
+    } catch (e) {
+      debugPrint('Kunde inte ansluta till refresh: $e');
+      return null;
+    }
+  }
+  void _debugLogJwtPayload(String? token, String source) {
+  if (token == null || token.isEmpty) {
+    debugPrint('--- JWT [$source]: Ingen token hittades ---');
+    return;
+  }
+
+  try {
+    // En JWT består av tre delar separerade med punkt. Vi vill ha del 2 (index 1).
+    final parts = token.split('.');
+    if (parts.length < 2) {
+      debugPrint('--- JWT [$source]: Ogiltigt token-format ---');
+      return;
+    }
+
+    String payload = parts[1];
+    
+    // Base64-strängar i JWT saknar ibland "padding" (=), vi lägger till det om det behövs
+    switch (payload.length % 4) {
+      case 2: payload += '=='; break;
+      case 3: payload += '='; break;
+    }
+
+    // Koda av strängen till ren text (JSON)
+    final String decodedText = utf8.decode(base64Url.decode(payload));
+    
+    // Snygga till JSON-strukturen så den blir lättläst i terminalen
+    final dynamic jsonObject = json.decode(decodedText);
+    final String prettyJson = const JsonEncoder.withIndent('  ').convert(jsonObject);
+
+    debugPrint('\n=============================================');
+    debugPrint('     🚨 JWT PAYLOAD FRÅN: $source 🚨');
+    debugPrint('=============================================');
+    debugPrint(prettyJson);
+    debugPrint('=============================================\n');
+  } catch (e) {
+    debugPrint('Kunde inte avkoda JWT från $source: $e');
+  }
+}
 }

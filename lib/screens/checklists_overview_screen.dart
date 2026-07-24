@@ -1,15 +1,13 @@
 // lib/screens/checklists_overview_screen.dart
-// UPPDATERAD: Fångar nu SessionExpiredException och navigerar till login.
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:kvalprak_app/providers/checklist_provider.dart';
 import 'package:kvalprak_app/screens/checklist_detail_screen.dart';
 import 'package:kvalprak_app/models/api_checklist_models.dart';
-import 'package:kvalprak_app/services/checklist_service.dart'; // Importera för exception
-import 'package:kvalprak_app/login_screen.dart'; // Importera för navigation
+import 'package:kvalprak_app/login_screen.dart'; 
+import 'package:kvalprak_app/services/exceptions.dart';
 
-// Vi gör om skärmen till en StatefulWidget för att kunna hämta data i initState
 class ChecklistsOverviewScreen extends StatefulWidget {
   const ChecklistsOverviewScreen({super.key});
 
@@ -47,6 +45,8 @@ class _ChecklistsOverviewScreenState extends State<ChecklistsOverviewScreen> {
       await context.read<ChecklistProvider>().fetchChecklists();
     } on SessionExpiredException {
       _handleSessionExpired();
+    } catch (e) {
+      print("Ett annat fel uppstod: $e");
     }
   }
 

@@ -1,5 +1,4 @@
 // lib/models/document_models.dart
-// SLUTGILTIG KORRIGERING 2: Hanterar nu även "main_attachment" som en bilaga.
 
 class MainMenu {
   final String id;
@@ -83,26 +82,27 @@ class DocumentDetail {
   factory DocumentDetail.fromJson(Map<String, dynamic> json) {
     final docData = json['document'] as Map<String, dynamic>? ?? {};
     
-    // Börja med listan över extra bilagor
     final attachmentsListJson = docData['attachments'] as List<dynamic>? ?? [];
     final List<Attachment> finalAttachments = attachmentsListJson.map((attJson) => Attachment.fromJson(attJson)).toList();
 
-    // ===================================
-    // === HÄR ÄR DEN NYA LOGIKEN ===
-    // ===================================
-    // Titta efter en "main_attachment"
     final mainAttachmentString = docData['main_attachment'] as String?;
+    
     if (mainAttachmentString != null && mainAttachmentString.isNotEmpty) {
-      // Skapa ett Attachment-objekt från huvudfilen
-      final mainAttachmentFileExt = mainAttachmentString.contains('.') ? '.${mainAttachmentString.split('.').last}' : '';
-      final mainAttachmentId = mainAttachmentString.replaceAll(mainAttachmentFileExt, '');
+      int lastDotIndex = mainAttachmentString.lastIndexOf('.');
+      String fileName = mainAttachmentString;
+      String fileExt = "";
+      String attachmentId = mainAttachmentString;
+
+      if (lastDotIndex != -1) {
+        fileExt = mainAttachmentString.substring(lastDotIndex);
+        attachmentId = mainAttachmentString.substring(0, lastDotIndex);
+      }
       
       final mainAttachmentObject = Attachment(
-        id: mainAttachmentId,
-        fileName: docData['name'] ?? mainAttachmentString, // Använd dokumentets namn för huvudfilen
-        fileExt: mainAttachmentFileExt,
+        id: attachmentId,
+        fileName: docData['name'] ?? mainAttachmentString,
+        fileExt: fileExt,
       );
-      // Lägg till den FÖRST i listan
       finalAttachments.insert(0, mainAttachmentObject);
     }
 
@@ -112,9 +112,35 @@ class DocumentDetail {
       status: docData['status'] ?? 'okänd',
       createdDate: docData['created_date'] ?? '',
       createdBy: docData['created_by'] ?? '',
-      attachments: finalAttachments, // Använd den nya, kompletta listan
+      attachments: finalAttachments,
       baseUrl: docData['base_url'] ?? '',
       mainAttachment: docData['main_attachment'],
+    );
+  }
+}
+
+class DocumentSearchResult {
+  final String id;
+  final String name;
+  final String description;
+  final String folderName;
+  final String menuName;
+
+  DocumentSearchResult({
+    required this.id,
+    required this.name,
+    required this.description,
+    required this.folderName,
+    required this.menuName,
+  });
+
+  factory DocumentSearchResult.fromJson(Map<String, dynamic> json) {
+    return DocumentSearchResult(
+      id: json['id'] ?? '',
+      name: json['name'] ?? 'Okänt dokument',
+      description: json['description'] ?? '',
+      folderName: json['folder_name'] ?? '',
+      menuName: json['menu_name'] ?? '',
     );
   }
 }

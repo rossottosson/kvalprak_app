@@ -1,19 +1,10 @@
 // lib/services/checklist_service.dart
-// UPPDATERAD: Hanterar nu session timeouts (status 401) med ett eget undantag.
 
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 import 'package:kvalprak_app/models/api_checklist_models.dart';
 import 'package:kvalprak_app/services/url_service.dart';
-
-// Eget undantag för att hantera session timeouts
-class SessionExpiredException implements Exception {
-  final String message;
-  SessionExpiredException(this.message);
-  @override
-  String toString() => message;
-}
+import 'package:kvalprak_app/services/api_service.dart';
 
 void logLong(String text, {int chunkSize = 800}) {
   final pattern = RegExp('.{1,$chunkSize}', dotAll: true);
@@ -23,16 +14,13 @@ void logLong(String text, {int chunkSize = 800}) {
 }
 
 class ChecklistService {
-  // ... getChecklists och getQuestionsForPage är oförändrade från förra versionen ...
-  Future<List<ApiChecklist>> getChecklists(String token) async {
+  final ApiService _apiService = ApiService();
+
+  Future<List<ApiChecklist>> getChecklists() async {
     final apiHost = await UrlService.getApiHost();
     final url = Uri.parse('https://$apiHost/api/checklist');
 
-    final response = await http.get(url, headers: {'Authorization': 'Bearer $token'});
-
-    if (response.statusCode == 401) {
-      throw SessionExpiredException('Sessionen har gått ut.');
-    }
+    final response = await _apiService.get(url);
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
@@ -67,15 +55,11 @@ class ChecklistService {
     }
   }
 
-  Future<ChecklistPageData> getQuestionsForPage(String token, String pageId) async {
+  Future<ChecklistPageData> getQuestionsForPage(String pageId) async {
     final apiHost = await UrlService.getApiHost();
     final url = Uri.parse('https://$apiHost/api/checklist/$pageId/questions');
 
-    final response = await http.get(url, headers: {'Authorization': 'Bearer $token'});
-
-    if (response.statusCode == 401) {
-      throw SessionExpiredException('Sessionen har gått ut.');
-    }
+    final response = await _apiService.get(url);
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
@@ -120,36 +104,21 @@ class ChecklistService {
     }
   }
 
-  // POST /api/checklist/{page_id}/submit
-  Future<String?> submitChecklist(String token, String pageId, Map<String, dynamic> answers) async {
+  Future<String?> submitChecklist(String pageId, Map<String, dynamic> answers) async {
     final apiHost = await UrlService.getApiHost();
     final url = Uri.parse('https://$apiHost/api/checklist/$pageId/submit');
 
-    final response = await http.post(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: json.encode(answers),
-    );
+    final response = await _apiService.post(url, body: answers);
 
-    if (response.statusCode == 401) {
-      throw SessionExpiredException('Sessionen har gått ut.');
-    }
-
-    // === NY LOGGNING AV SVARET ===
     debugPrint('Inskickning till servern gav status: ${response.statusCode}');
     logLong('--- RAW SUBMIT RESPONSE ---');
     logLong(response.body);
     logLong('--- END RAW SUBMIT RESPONSE ---');
-    // =============================
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
-      // Vi litar på att ett 200 OK betyder success, även om 'success' eller 'survey_id' saknas.
       if (data['success'] == true || data.isEmpty) {
-        return data['survey_id'] as String? ?? 'success'; // Returnera 'success' om id saknas
+        return data['survey_id'] as String? ?? 'success';
       }
       return null;
     } else {
@@ -158,16 +127,11 @@ class ChecklistService {
     }
   }
 
-  // ... getSubmissionsForPage är oförändrad ...
-  Future<List<ApiSubmission>> getSubmissionsForPage(String token, String pageId) async {
+  Future<List<ApiSubmission>> getSubmissionsForPage(String pageId) async {
     final apiHost = await UrlService.getApiHost();
     final url = Uri.parse('https://$apiHost/api/checklist/$pageId/submissions');
 
-    final response = await http.get(url, headers: {'Authorization': 'Bearer $token'});
-
-    if (response.statusCode == 401) {
-      throw SessionExpiredException('Sessionen har gått ut.');
-    }
+    final response = await _apiService.get(url);
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);

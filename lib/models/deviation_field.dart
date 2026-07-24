@@ -1,6 +1,4 @@
 // lib/models/deviation_field.dart
-// UPPDATERAD: Med den slutgiltiga, korrekta regeln för obligatoriska fält.
-
 class DeviationField {
   final String id;
   final String title;
@@ -19,13 +17,10 @@ class DeviationField {
   });
 
   factory DeviationField.fromJson(String id, Map<String, dynamic> json) {
-    // KORREKT LOGIK: Enligt specifikationen från teamet.
-    final bool requiredValue = json['required'] == '2' || 
-                               json['required_kvalprak'] == '1';
+    final String req = json['required']?.toString().trim() ?? '0';
+    final String reqKval = json['required_kvalprak']?.toString().trim() ?? '0';
 
-    if (requiredValue) {
-      print("Fältet '${json['title']}' har markerats som obligatoriskt.");
-    }
+    final bool requiredValue = req == '2' || reqKval == '1';
 
     return DeviationField(
       id: id,

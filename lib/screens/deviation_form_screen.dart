@@ -1,5 +1,4 @@
 // lib/screens/deviation_form_screen.dart
-// UPPDATERAD: Förhandsväljer det första alternativet i alla dropdown-menyer.
 
 import 'dart:io';
 import 'dart:convert';
@@ -12,7 +11,8 @@ import 'package:kvalprak_app/services/auth_service.dart';
 import 'package:kvalprak_app/services/deviation_service.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:uuid/uuid.dart';
-import 'package:kvalprak_app/login_screen.dart'; // Ny import
+import 'package:kvalprak_app/login_screen.dart'; 
+import 'package:kvalprak_app/services/exceptions.dart';
 
 class DeviationFormScreen extends StatefulWidget {
   const DeviationFormScreen({super.key});
@@ -68,13 +68,8 @@ class _DeviationFormScreenState extends State<DeviationFormScreen> {
   }
 
   Future<void> _loadForm() async {
-    final token = await _authService.getToken();
-    if (token == null) {
-      _handleSessionExpired();
-      return;
-    }
     try {
-      final formData = await _deviationService.getDeviationFields(token: token);
+      final formData = await _deviationService.getDeviationFields();
       final userName = await _authService.getCurrentUserName();
       final userEmail = await _authService.getCurrentUserEmail();
 
@@ -86,7 +81,6 @@ class _DeviationFormScreenState extends State<DeviationFormScreen> {
         _isLoading = false;
 
         for (var field in _fields) {
-          // Sätt upp text controllers och fyll i standardvärden
           final controller = TextEditingController();
           final titleLower = field.title.toLowerCase();
           if (titleLower.contains('händelsedatum')) {
@@ -98,13 +92,10 @@ class _DeviationFormScreenState extends State<DeviationFormScreen> {
           }
           _controllers[field.id] = controller;
 
-          // NY LOGIK: Om fältet är en dropdown, välj det första alternativet
           if (field.inputType == 'dropdown' || field.inputType == 'department' || field.inputType == 'eventanalysis') {
             final fieldOptions = _options[field.id] as Map<String, dynamic>? ?? {};
             if (fieldOptions.isNotEmpty) {
-              // Hämta ID för det första alternativet i listan
               final firstOptionId = fieldOptions.keys.first;
-              // Sätt det som det valda värdet i state
               _dropdownValues[field.id] = firstOptionId;
             }
           }
@@ -113,23 +104,14 @@ class _DeviationFormScreenState extends State<DeviationFormScreen> {
     } on SessionExpiredException {
       _handleSessionExpired();
     } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-        _error = e.toString();
-      });
+      setState(() { _isLoading = false; _error = e.toString(); });
     }
   }
 
   Future<void> _submitForm() async {
     if (_formKey.currentState?.validate() ?? false) {
       setState(() => _isLoading = true);
-      final token = await _authService.getToken();
-      if (token == null) {
-        _handleSessionExpired();
-        return;
-      }
-
+      
       Map<String, dynamic> submissionData = {
         'page': 1,
         'id': _newDeviationId,
@@ -167,10 +149,8 @@ class _DeviationFormScreenState extends State<DeviationFormScreen> {
         submissionData['emailId'] = emailField.id;
         submissionData['emails'] = _selectedEmailIds;
       }
-
       try {
         final success = await _deviationService.submitDeviation(
-          token: token,
           submissionData: submissionData,
         );
         if (!mounted) return;
@@ -205,12 +185,6 @@ class _DeviationFormScreenState extends State<DeviationFormScreen> {
     final XFile? pickedFile = await _picker.pickImage(source: source);
     if (pickedFile == null) return;
 
-    final token = await _authService.getToken();
-    if (token == null) {
-      _handleSessionExpired();
-      return;
-    }
-
     setState(() {
       _imageFiles.add(pickedFile);
       _uploadingFiles.add(pickedFile.path);
@@ -218,7 +192,6 @@ class _DeviationFormScreenState extends State<DeviationFormScreen> {
 
     try {
       final success = await _deviationService.uploadAttachment(
-        token: token,
         deviationId: _newDeviationId,
         file: pickedFile,
       );
@@ -246,8 +219,6 @@ class _DeviationFormScreenState extends State<DeviationFormScreen> {
       });
     }
   }
-
-  // ----- All kod under denna rad är oförändrad från din version -----
 
   String? _validateEmails(String? value) {
     if (value == null || value.trim().isEmpty) {

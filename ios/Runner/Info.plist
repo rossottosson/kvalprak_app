@@ -53,6 +53,8 @@
 	<string>Denna app behöver tillgång till din kamera för att du ska kunna ta och bifoga bilder i en avvikelserapport.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Denna app behöver tillgång till mikrofonen för att kunna omvandla tal till text samt spela in video med ljud.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Vi använder Face ID för att du snabbt och säkert ska kunna logga in i appen igen.</string>
 	<key>io.flutter.embedded_views_preview</key>
 	<true/>
 </dict>

@@ -1,13 +1,11 @@
 // lib/screens/document_detail_screen.dart
-// UPPDATERAD: Använder nu korrekt typ (WebUri) för flutter_inappwebview.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:provider/provider.dart';
 import 'package:kvalprak_app/providers/document_provider.dart';
-import 'package:kvalprak_app/services/checklist_service.dart';
 import 'package:kvalprak_app/login_screen.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:kvalprak_app/services/exceptions.dart';
 
 class DocumentDetailScreen extends StatefulWidget {
   final String documentId;
@@ -55,6 +53,8 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
       await context.read<DocumentProvider>().fetchDocumentDetails(widget.documentId);
     } on SessionExpiredException {
       _handleSessionExpired();
+    } catch (e) {
+      print("Ett annat fel uppstod: $e");
     }
   }
 
@@ -66,10 +66,6 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
       urlString = '$baseUrl/$attachmentId$fileExt';
     }
 
-    // ===================================
-    // === HÄR ÄR KORRIGERINGEN ===
-    // ===================================
-    // Skapa ett WebUri-objekt istället för ett vanligt Uri-objekt.
     await browser.open(
         url: WebUri(urlString),
         options: ChromeSafariBrowserClassOptions(

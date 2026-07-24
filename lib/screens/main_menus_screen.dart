@@ -1,12 +1,12 @@
 // lib/screens/main_menus_screen.dart
-// UPPDATERAD: Anropar fetchMenuStructure och rensar gammal data vid behov.
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:kvalprak_app/providers/document_provider.dart';
-import 'package:kvalprak_app/services/checklist_service.dart'; // For SessionExpiredException
 import 'package:kvalprak_app/login_screen.dart';
 import 'package:kvalprak_app/screens/menu_structure_screen.dart';
+import 'package:kvalprak_app/screens/document_detail_screen.dart';
+import 'package:kvalprak_app/services/exceptions.dart';
 
 class MainMenusScreen extends StatefulWidget {
   const MainMenusScreen({super.key});
@@ -16,14 +16,22 @@ class MainMenusScreen extends StatefulWidget {
 }
 
 class _MainMenusScreenState extends State<MainMenusScreen> {
+  final TextEditingController _searchController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Rensa eventuell gammal data när vi kommer till denna skärm
       context.read<DocumentProvider>().clearMenuStructure();
+      context.read<DocumentProvider>().clearSearch();
       _fetchData();
     });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   void _handleSessionExpired() {
@@ -45,31 +53,37 @@ class _MainMenusScreenState extends State<MainMenusScreen> {
   Future<void> _fetchData() async {
     try {
       await context.read<DocumentProvider>().fetchMainMenus();
-    } on SessionExpiredException {
-      _handleSessionExpired();
+    } catch (e) {
+      if (e is SessionExpiredException) {
+        _handleSessionExpired();
+      } else {
+        print("Ett annat fel uppstod: $e");
+      }
     }
   }
 
-  // Anropas när användaren väljer en meny
   Future<void> _onMenuSelected(String menuId, String menuName) async {
+    // Rensa sökningen när man klickar in i en mapp så den är ren när man backar
+    _searchController.clear();
+    context.read<DocumentProvider>().clearSearch();
+    
     try {
-      // Ladda hela strukturen för den valda menyn
       await context.read<DocumentProvider>().fetchMenuStructure(menuId);
       if (mounted) {
-        // Navigera sedan till första nivån i strukturen
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => MenuStructureScreen(
-              // Den första nivån har huvudmenyns ID som sin förälder
               parentId: menuId,
               parentName: menuName,
             ),
           ),
         );
       }
-    } on SessionExpiredException {
-      _handleSessionExpired();
+    } catch (e) {
+      if (e.toString().contains('401')) {
+        _handleSessionExpired();
+      }
     }
   }
 
@@ -82,12 +96,51 @@ class _MainMenusScreenState extends State<MainMenusScreen> {
       appBar: AppBar(
         title: const Text('Dokument'),
       ),
-      body: _buildBody(documentProvider, textTheme),
+      body: Column(
+        children: [
+          // SÖKFÄLTET
+          Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Sök dokument...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                          context.read<DocumentProvider>().clearSearch();
+                        },
+                      )
+                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                contentPadding: const EdgeInsets.symmetric(vertical: 0),
+              ),
+              onChanged: (value) {
+                if (value.length >= 3) {
+                  context.read<DocumentProvider>().searchDocuments(value);
+                } else if (value.isEmpty) {
+                  context.read<DocumentProvider>().clearSearch();
+                }
+              },
+            ),
+          ),
+          
+          // LISTAN (Mappar eller sökresultat)
+          Expanded(
+            child: _buildBody(documentProvider, textTheme),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildBody(DocumentProvider provider, TextTheme textTheme) {
-    if (provider.isLoading && provider.mainMenus.isEmpty) {
+    if (provider.isLoading || provider.isSearching) {
       return const Center(child: CircularProgressIndicator());
     }
 
@@ -96,7 +149,7 @@ class _MainMenusScreenState extends State<MainMenusScreen> {
         child: Padding(
           padding: const EdgeInsets.all(20.0),
           child: Text(
-            'Kunde inte ladda menyer:\n${provider.error}',
+            'Ett fel uppstod:\n${provider.error}',
             textAlign: TextAlign.center,
             style: textTheme.titleMedium?.copyWith(color: Colors.red),
           ),
@@ -104,6 +157,46 @@ class _MainMenusScreenState extends State<MainMenusScreen> {
       );
     }
 
+    // SCENARIO 1: Användaren har sökt och fått träffar
+    if (_searchController.text.length >= 3) {
+      if (provider.searchResults.isEmpty) {
+        return Center(
+          child: Text(
+            'Inga dokument matchade "${_searchController.text}"',
+            style: textTheme.titleMedium?.copyWith(color: Colors.grey[600]),
+          ),
+        );
+      }
+
+      return ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+        itemCount: provider.searchResults.length,
+        itemBuilder: (context, index) {
+          final doc = provider.searchResults[index];
+          return Card(
+            child: ListTile(
+              leading: const Icon(Icons.article_outlined),
+              title: Text(doc.name, style: textTheme.titleMedium),
+              subtitle: Text('${doc.menuName} > ${doc.folderName}'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => DocumentDetailScreen(
+                      documentId: doc.id,
+                      documentName: doc.name,
+                    ),
+                  ),
+                );
+              },
+            ),
+          );
+        },
+      );
+    }
+
+    // SCENARIO 2: Visar vanliga mappar när man inte söker
     if (provider.mainMenus.isEmpty) {
       return Center(
         child: Padding(
@@ -119,7 +212,7 @@ class _MainMenusScreenState extends State<MainMenusScreen> {
 
     final menus = provider.mainMenus;
     return ListView.builder(
-      padding: const EdgeInsets.all(8.0),
+      padding: const EdgeInsets.symmetric(horizontal: 8.0),
       itemCount: menus.length,
       itemBuilder: (context, index) {
         final menu = menus[index];

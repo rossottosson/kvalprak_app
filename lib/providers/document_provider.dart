@@ -1,15 +1,12 @@
 // lib/providers/document_provider.dart
-// UPPDATERAD: Lade till state och metod för att hantera dokumentdetaljer.
 
 import 'package:flutter/foundation.dart';
 import 'package:kvalprak_app/models/document_models.dart';
-import 'package:kvalprak_app/services/auth_service.dart';
-import 'package:kvalprak_app/services/checklist_service.dart'; // For SessionExpiredException
 import 'package:kvalprak_app/services/document_service.dart';
+import 'package:kvalprak_app/services/exceptions.dart';
 
 class DocumentProvider with ChangeNotifier {
   final DocumentService _documentService = DocumentService();
-  final AuthService _authService = AuthService();
 
   List<MainMenu> _mainMenus = [];
   List<MainMenu> get mainMenus => List.unmodifiable(_mainMenus);
@@ -17,8 +14,13 @@ class DocumentProvider with ChangeNotifier {
   List<MenuItem> _menuItems = [];
   List<MenuItem> get menuItems => List.unmodifiable(_menuItems);
 
-  String? _currentMainMenuId;
+  // Tillstånd för sökning
+  List<DocumentSearchResult> _searchResults = [];
+  List<DocumentSearchResult> get searchResults => List.unmodifiable(_searchResults);
+  bool _isSearching = false;
+  bool get isSearching => _isSearching;
 
+  String? _currentMainMenuId;
   DocumentDetail? _documentDetail;
   DocumentDetail? get documentDetail => _documentDetail;
 
@@ -29,21 +31,15 @@ class DocumentProvider with ChangeNotifier {
   String? get error => _error;
 
   Future<void> fetchMainMenus() async {
-    final token = await _authService.getToken();
-    if (token == null) {
-      throw SessionExpiredException("Autentisering saknas.");
-    }
-
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      _mainMenus = await _documentService.getMainMenus(token);
-    } on SessionExpiredException {
-      rethrow;
+      _mainMenus = await _documentService.getMainMenus();
     } catch (e) {
       _error = e.toString();
+      if (e is SessionExpiredException) rethrow;
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -55,22 +51,16 @@ class DocumentProvider with ChangeNotifier {
       return;
     }
 
-    final token = await _authService.getToken();
-    if (token == null) {
-      throw SessionExpiredException("Autentisering saknas.");
-    }
-
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      _menuItems = await _documentService.getMenuStructure(token, menuId);
+      _menuItems = await _documentService.getMenuStructure(menuId);
       _currentMainMenuId = menuId;
-    } on SessionExpiredException {
-      rethrow;
     } catch (e) {
       _error = e.toString();
+      if (e is SessionExpiredException) rethrow;
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -78,26 +68,46 @@ class DocumentProvider with ChangeNotifier {
   }
 
   Future<void> fetchDocumentDetails(String documentId) async {
-    final token = await _authService.getToken();
-    if (token == null) {
-      throw SessionExpiredException("Autentisering saknas.");
-    }
-
     _isLoading = true;
     _error = null;
     _documentDetail = null;
     notifyListeners();
 
     try {
-      _documentDetail = await _documentService.getDocumentDetails(token, documentId);
-    } on SessionExpiredException {
-      rethrow;
+      _documentDetail = await _documentService.getDocumentDetails(documentId);
     } catch (e) {
       _error = e.toString();
+      if (e is SessionExpiredException) rethrow;
     } finally {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  Future<void> searchDocuments(String query) async {
+    if (query.trim().length < 3) {
+      clearSearch();
+      return;
+    }
+
+    _isSearching = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      _searchResults = await _documentService.searchDocuments(query.trim());
+    } catch (e) {
+      _error = e.toString();
+      if (e is SessionExpiredException) rethrow;
+    } finally {
+      _isSearching = false;
+      notifyListeners();
+    }
+  }
+  void clearSearch() {
+    _searchResults = [];
+    _isSearching = false;
+    notifyListeners();
   }
 
   void clearMenuStructure() {
