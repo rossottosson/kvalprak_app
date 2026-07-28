@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:kvalprak_app/screens/deviation_form_screen.dart';
 import 'package:kvalprak_app/screens/checklists_overview_screen.dart';
 import 'package:kvalprak_app/screens/main_menus_screen.dart';
+import 'package:kvalprak_app/screens/todo_lists_screen.dart';
 import 'package:kvalprak_app/services/auth_service.dart'; // Ny import
 import 'package:kvalprak_app/services/url_service.dart';
 import 'package:kvalprak_app/screens/clinic_selection_screen.dart';
@@ -52,6 +53,7 @@ class ActionSelectScreen extends StatelessWidget {
 
     const Color oxbloodRed = Color(0xFF8B0000);
     const Color turquoise = Color(0xFF00AFAB);
+    const Color todoGreen = Color(0xFF2E7D32);
     final Color primaryColor = colorScheme.primary;
 
     return Scaffold(
@@ -98,7 +100,7 @@ class ActionSelectScreen extends StatelessWidget {
                       child: Center(child: Icon(Icons.broken_image_rounded, size: 60, color: Colors.grey)));
                 },
               ),
-              const SizedBox(height: 150),
+              const SizedBox(height: 60),
               ElevatedButton.icon(
                 icon: const Icon(Icons.warning_amber_rounded, size: 28),
                 label: const Text('Rapportera avvikelse'),
@@ -150,6 +152,24 @@ class ActionSelectScreen extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const MainMenusScreen()),
+                  );
+                },
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.task_alt_rounded, size: 28),
+                label: const Text('Att göra'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  textStyle: textTheme.titleLarge?.copyWith(color: Colors.white),
+                  backgroundColor: todoGreen,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () {
+                  debugPrint('Navigating to Todo Lists Screen');
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const TodoListsScreen()),
                   );
                 },
               ),

@@ -46,7 +46,7 @@ class _ChecklistsOverviewScreenState extends State<ChecklistsOverviewScreen> {
     } on SessionExpiredException {
       _handleSessionExpired();
     } catch (e) {
-      print("Ett annat fel uppstod: $e");
+      debugPrint("Ett annat fel uppstod: $e");
     }
   }
 

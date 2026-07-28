@@ -57,7 +57,7 @@ class _MainMenusScreenState extends State<MainMenusScreen> {
       if (e is SessionExpiredException) {
         _handleSessionExpired();
       } else {
-        print("Ett annat fel uppstod: $e");
+        debugPrint("Ett annat fel uppstod: $e");
       }
     }
   }
@@ -80,10 +80,10 @@ class _MainMenusScreenState extends State<MainMenusScreen> {
           ),
         );
       }
+    } on SessionExpiredException {
+      _handleSessionExpired();
     } catch (e) {
-      if (e.toString().contains('401')) {
-        _handleSessionExpired();
-      }
+      debugPrint('Kunde inte ladda menystruktur: $e');
     }
   }
 

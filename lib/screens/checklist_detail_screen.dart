@@ -54,11 +54,35 @@ class _ChecklistDetailScreenState extends State<ChecklistDetailScreen> {
   Future<void> _fetchQuestions() async {
     try {
       await context.read<ChecklistProvider>().fetchQuestions(widget.pageId);
+      _prefillDefaultAnswers();
     } on SessionExpiredException {
       _handleSessionExpired();
     } catch (e) {
-      print("Ett annat fel uppstod: $e");
+      debugPrint("Ett annat fel uppstod: $e");
     }
+  }
+
+  // Förifyller standardvärden EN gång när frågorna laddats, istället för under
+  // build(). Ger samma resultat som tidigare (valfria datumfält får dagens datum
+  // som standard, obligatoriska lämnas tomma, redan ifyllda värden rörs inte) men
+  // på ett förutsägbart sätt utan biverkningar under uppritningen.
+  void _prefillDefaultAnswers() {
+    if (!mounted) return;
+    final questions = context.read<ChecklistProvider>().currentPageData?.questions;
+    if (questions == null) return;
+
+    bool changed = false;
+    for (final question in questions) {
+      final bool isRequired = question.validate.contains('required');
+      if (question.type == 'date' &&
+          !isRequired &&
+          _answers[question.questionId] == null) {
+        _answers[question.questionId] =
+            DateFormat('yyyy-MM-dd').format(DateTime.now());
+        changed = true;
+      }
+    }
+    if (changed) setState(() {});
   }
 
   Future<void> _submitChecklist() async {
@@ -101,7 +125,7 @@ class _ChecklistDetailScreenState extends State<ChecklistDetailScreen> {
     } on SessionExpiredException {
       _handleSessionExpired();
     } catch (e) {
-      print("Ett annat fel uppstod: $e");
+      debugPrint("Ett annat fel uppstod: $e");
     }
   }
 
@@ -367,9 +391,6 @@ class _ChecklistDetailScreenState extends State<ChecklistDetailScreen> {
         break;
 
       case 'date':
-        if (_answers[question.questionId] == null && !isRequired) {
-          _answers[question.questionId] = DateFormat('yyyy-MM-dd').format(DateTime.now());
-        }
         content = Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

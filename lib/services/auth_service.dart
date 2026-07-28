@@ -80,7 +80,7 @@ class AuthService {
     await _storage.delete(key: _userEmailKey);
 
     await UrlService.clearSelectedClinic();
-    print('Användare utloggad. Session raderad, men sparade credentials bevarade.');
+    debugPrint('Användare utloggad. Session raderad, men sparade credentials bevarade.');
   }
 
   Future<String?> getCurrentUserName() async {

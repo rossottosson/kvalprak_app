@@ -2,6 +2,7 @@
 // UPPDATERAD: Lade till DocumentProvider med MultiProvider.
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 
 // Hive-importer är borttagna
@@ -9,9 +10,16 @@ import 'package:provider/provider.dart';
 import 'package:kvalprak_app/screens/app_initializer_screen.dart';
 import 'package:kvalprak_app/providers/checklist_provider.dart';
 import 'package:kvalprak_app/providers/document_provider.dart'; // Ny import
+import 'package:kvalprak_app/providers/todo_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // I release-bygget tystar vi all felsökningsloggning (debugPrint) så att
+  // ingen känslig data (t.ex. tokens, e-post) hamnar i enhetens systemlogg.
+  if (!kDebugMode) {
+    debugPrint = (String? message, {int? wrapWidth}) {};
+  }
 
   // All kod relaterad till Hive.initFlutter(), registerAdapter() och openBox() är borttagen.
 
@@ -20,6 +28,7 @@ Future<void> main() async {
       providers: [
         ChangeNotifierProvider(create: (context) => ChecklistProvider()),
         ChangeNotifierProvider(create: (context) => DocumentProvider()),
+        ChangeNotifierProvider(create: (context) => TodoProvider()),
       ],
       child: const MyApp(),
     ),

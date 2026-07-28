@@ -54,7 +54,7 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
     } on SessionExpiredException {
       _handleSessionExpired();
     } catch (e) {
-      print("Ett annat fel uppstod: $e");
+      debugPrint("Ett annat fel uppstod: $e");
     }
   }
 

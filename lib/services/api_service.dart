@@ -1,6 +1,7 @@
 // lib/services/api_service.dart
 
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:kvalprak_app/services/auth_service.dart';
 import 'package:kvalprak_app/services/exceptions.dart';
@@ -22,12 +23,12 @@ class ApiService {
 
     // 2. Om token har gått ut, försök förnya osynligt
     if (response.statusCode == 401) {
-      print('Token gick ut under användning! Försöker förnya osynligt i bakgrunden...');
+      debugPrint('Token gick ut under användning! Försöker förnya osynligt i bakgrunden...');
 
       String? newToken = await _authService.trySilentRefreshToken();
 
       if (newToken != null) {
-        print('Session förnyad i smyg! Gör om anropet direkt med ny nyckel...');
+        debugPrint('Session förnyad i smyg! Gör om anropet direkt med ny nyckel...');
         
         // Uppdatera response med det nya anropet
         response = await http.get(
@@ -41,7 +42,7 @@ class ApiService {
         // Om servern FORTFARANDE säger 401 med den helt nya nyckeln,
         // då vägrar servern prata med oss. Kasta ut användaren till login!
         if (response.statusCode == 401) {
-          print('Den nya nyckeln nekades också! Kasta ut till login.');
+          debugPrint('Den nya nyckeln nekades också! Kasta ut till login.');
           throw SessionExpiredException();
         }
       } else {
@@ -65,18 +66,18 @@ class ApiService {
   // Smart POST-metod (för när du ska skicka in formulär/data)
   Future<http.Response> post(Uri url, {Map<String, dynamic>? body}) async {
     String? token = await _authService.getToken();
-    
+
     var response = await http.post(
-      url, 
+      url,
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token', 
+        'Authorization': 'Bearer $token',
       },
       body: body != null ? json.encode(body) : null,
     );
 
     if (response.statusCode == 401) {
-      print('Token gick ut vid POST! Försöker förnya osynligt...');
+      debugPrint('Token gick ut vid POST! Försöker förnya osynligt...');
       
       String? newToken = await _authService.trySilentRefreshToken();
 
@@ -92,11 +93,107 @@ class ApiService {
 
         // HÄR ÄR SÄKERHETSSPÄRREN IGEN:
         if (response.statusCode == 401) {
-          print('Den nya nyckeln nekades vid POST! Kasta ut till login.');
+          debugPrint('Den nya nyckeln nekades vid POST! Kasta ut till login.');
           throw SessionExpiredException();
         }
       } else {
         throw SessionExpiredException();    
+      }
+    }
+
+    if (response.statusCode == 200) {
+      try {
+        json.decode(response.body);
+      } catch (e) {
+        throw Exception("Servern skickade ett ogiltigt svar (Inte JSON).");
+      }
+    }
+
+    return response;
+  }
+
+  // Smart PUT-metod (för att uppdatera befintlig data)
+  Future<http.Response> put(Uri url, {Map<String, dynamic>? body}) async {
+    String? token = await _authService.getToken();
+
+    var response = await http.put(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: body != null ? json.encode(body) : null,
+    );
+
+    if (response.statusCode == 401) {
+      debugPrint('Token gick ut vid PUT! Försöker förnya osynligt...');
+
+      String? newToken = await _authService.trySilentRefreshToken();
+
+      if (newToken != null) {
+        response = await http.put(
+          url,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $newToken',
+          },
+          body: body != null ? json.encode(body) : null,
+        );
+
+        if (response.statusCode == 401) {
+          debugPrint('Den nya nyckeln nekades vid PUT! Kasta ut till login.');
+          throw SessionExpiredException();
+        }
+      } else {
+        throw SessionExpiredException();
+      }
+    }
+
+    if (response.statusCode == 200) {
+      try {
+        json.decode(response.body);
+      } catch (e) {
+        throw Exception("Servern skickade ett ogiltigt svar (Inte JSON).");
+      }
+    }
+
+    return response;
+  }
+
+  // Smart DELETE-metod (för att radera data)
+  Future<http.Response> delete(Uri url, {Map<String, dynamic>? body}) async {
+    String? token = await _authService.getToken();
+
+    var response = await http.delete(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: body != null ? json.encode(body) : null,
+    );
+
+    if (response.statusCode == 401) {
+      debugPrint('Token gick ut vid DELETE! Försöker förnya osynligt...');
+
+      String? newToken = await _authService.trySilentRefreshToken();
+
+      if (newToken != null) {
+        response = await http.delete(
+          url,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $newToken',
+          },
+          body: body != null ? json.encode(body) : null,
+        );
+
+        if (response.statusCode == 401) {
+          debugPrint('Den nya nyckeln nekades vid DELETE! Kasta ut till login.');
+          throw SessionExpiredException();
+        }
+      } else {
+        throw SessionExpiredException();
       }
     }
 

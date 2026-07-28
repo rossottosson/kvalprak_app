@@ -7,7 +7,6 @@ import 'package:kvalprak_app/action_select_screen.dart';
 import 'package:kvalprak_app/screens/clinic_selection_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:kvalprak_app/services/url_service.dart';
-import 'package:local_auth/local_auth.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -95,53 +94,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  final LocalAuthentication _localAuth = LocalAuthentication();
-
-Future<void> _loginWithBiometrics() async {
-    try {
-      // 1. Kolla om telefonen har Face ID/Touch ID aktiverat överhuvudtaget
-      final bool canAuthenticateWithBiometrics = await _localAuth.canCheckBiometrics;
-      final bool isDeviceSupported = await _localAuth.isDeviceSupported();
-      
-      if (!canAuthenticateWithBiometrics || !isDeviceSupported) return;
-
-      // 2. Poppa upp Face ID-rutan på skärmen
-      final bool didAuthenticate = await _localAuth.authenticate(
-        localizedReason: 'Skanna ditt ansikte för att logga in snabbt',
-        options: const AuthenticationOptions(
-          stickyAuth: true, // Håller rutan vaken om användaren tittar bort en sekund
-          biometricOnly: true, // Tillåter inte pinkod som fallback, endast biometri
-        ),
-      );
-
-      if (didAuthenticate) {
-        setState(() => _isLoading = true);
-        
-        // 3. Om Face ID lyckades, försök förnya sessionen via vårt API
-        final String? newToken = await _authService.trySilentRefreshToken();
-        
-        setState(() => _isLoading = false);
-
-        // HÄR ÄR FIXEN: Vi kollar newToken istället för refreshSuccess
-        if (newToken != null) {
-          // Succé! Släpp in användaren direkt utan 2FA-kod eller lösenord
-          if (!mounted) return;
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const ActionSelectScreen()),
-          );
-        } else {
-          // Om refresh_token gått ut efter 30 dagar, visa ett meddelande
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Sessionen har gått ut. Vänligen logga in med lösenord.')),
-          );
-        }
-      }
-    } catch (e) {
-      print("Biometrisk inloggning misslyckades: $e");
-    }
-  }
-
   Future<void> _goBackToClinicSelection() async {
     await _authService.logout();
     if (mounted) {
@@ -209,16 +161,6 @@ Future<void> _loginWithBiometrics() async {
             ),
 
             const SizedBox(height: 16),
-            if (_rememberMe && !_isTwoFactorStep && !_isLoading)
-              TextButton.icon(
-                onPressed: _loginWithBiometrics,
-                icon: const Icon(Icons.face, size: 32),
-                label: const Text('Logga in med Face ID / Touch ID'),
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-              ),
-            
             if (_isTwoFactorStep)
               Padding(
                 padding: const EdgeInsets.only(top: 24.0),
